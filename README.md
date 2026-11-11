@@ -22,7 +22,7 @@ Sistema de apoyo para la detección temprana de deterioro cognitivo a partir de 
 **Componentes del sistema**
 
 - Backend: FastAPI + PostgreSQL (Azure)
-- App móvil (Android / React Native)
+- App móvil (Android / iOS · Flutter)
 - Modelos de ML: Regresión Logística, SVM, Random Forest (scikit-learn)
 
 ---
