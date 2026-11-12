@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 class MocaSection {
   final int numero;
+  final int idArea;
   final String nombre;
   final String queEvalua;
   final String comoSeRealiza;
@@ -11,6 +12,7 @@ class MocaSection {
 
   const MocaSection({
     required this.numero,
+    required this.idArea,
     required this.nombre,
     required this.queEvalua,
     required this.comoSeRealiza,
@@ -23,6 +25,7 @@ class MocaSection {
 const mocaSections = <MocaSection>[
   MocaSection(
     numero: 1,
+    idArea: 1,
     nombre: 'Visuoespacial / Ejecutiva',
     queEvalua:
         'Capacidad de planificación, organización visual y habilidades '
@@ -37,6 +40,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 2,
+    idArea: 2,
     nombre: 'Identificación',
     queEvalua:
         'Capacidad para reconocer e identificar objetos o animales '
@@ -50,6 +54,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 3,
+    idArea: 3,
     nombre: 'Memoria',
     queEvalua:
         'Capacidad de registro y almacenamiento de información verbal '
@@ -65,6 +70,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 4,
+    idArea: 4,
     nombre: 'Atención',
     queEvalua:
         'Atención sostenida, concentración y memoria de trabajo.',
@@ -78,6 +84,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 5,
+    idArea: 5,
     nombre: 'Lenguaje',
     queEvalua:
         'Habilidades de lenguaje expresivo, incluyendo repetición y '
@@ -94,6 +101,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 6,
+    idArea: 6,
     nombre: 'Abstracción',
     queEvalua:
         'Capacidad de pensamiento abstracto para encontrar similitudes '
@@ -109,6 +117,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 7,
+    idArea: 7,
     nombre: 'Recuerdo diferido',
     queEvalua:
         'Memoria a largo plazo y capacidad de recuperación de información '
@@ -123,6 +132,7 @@ const mocaSections = <MocaSection>[
   ),
   MocaSection(
     numero: 8,
+    idArea: 8,
     nombre: 'Orientación',
     queEvalua:
         'Orientación temporal y espacial del paciente.',

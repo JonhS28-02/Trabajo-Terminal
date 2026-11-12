@@ -47,6 +47,12 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Brain Test necesita acceso a la cámara para escanear el código QR del paciente.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Brain Test necesita acceso al micrófono para la prueba de lenguaje por voz.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Brain Test utiliza reconocimiento de voz para evaluar la repetición de oraciones.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from passlib.hash import bcrypt
@@ -9,13 +10,17 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models.especialista import Especialista, PacienteEspecialista
-from ..models.evaluacion import CodigoSupervision, Moca
+from ..models.evaluacion import CodigoSupervision, Moca, ResultadoArea
 from ..models.paciente import ExpedienteClinico, Paciente
 from ..models.usuario import Usuario
 from ..schemas.evaluacion import (
+    FinalizarMocaRequest,
     GenerarCodigoRequest,
     GenerarCodigoResponse,
+    GuardarResultadosRequest,
+    MocaCompleteResponse,
     MocaResponse,
+    ResultadoAreaResponse,
     SesionStatusResponse,
     ValidarCodigoRequest,
 )
@@ -187,3 +192,144 @@ def obtener_sesion(
         fecha=moca.fecha,
         completada=moca.completada,
     )
+
+
+def _get_moca_for_patient(db: Session, id_moca: int, pac: Paciente) -> Moca:
+    moca = db.query(Moca).filter(Moca.id_moca == id_moca).first()
+    if not moca:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesión no encontrada")
+    if moca.id_paciente != pac.id_paciente:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin acceso a esta sesión")
+    return moca
+
+
+@router.post(
+    "/sesion/{id_moca}/resultados",
+    response_model=List[ResultadoAreaResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+def guardar_resultados(
+    id_moca: int,
+    body: GuardarResultadosRequest,
+    pac: Paciente = Depends(_require_patient),
+    db: Session = Depends(get_db),
+):
+    moca = _get_moca_for_patient(db, id_moca, pac)
+    if moca.completada:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La sesión ya fue completada",
+        )
+
+    seen_areas: set[int] = set()
+    for r in body.resultados:
+        if r.id_area in seen_areas:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Área {r.id_area} duplicada",
+            )
+        seen_areas.add(r.id_area)
+        if r.puntaje_obtenido > r.puntaje_maximo:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Puntaje obtenido ({r.puntaje_obtenido}) mayor que máximo ({r.puntaje_maximo}) en área {r.id_area}",
+            )
+
+    saved = []
+    for r in body.resultados:
+        existing = (
+            db.query(ResultadoArea)
+            .filter(ResultadoArea.id_moca == id_moca, ResultadoArea.id_area == r.id_area)
+            .first()
+        )
+        if existing:
+            existing.puntaje_obtenido = r.puntaje_obtenido
+            existing.puntaje_maximo = r.puntaje_maximo
+            existing.detalles = r.detalles
+            saved.append(existing)
+        else:
+            nuevo = ResultadoArea(
+                id_moca=id_moca,
+                id_area=r.id_area,
+                puntaje_obtenido=r.puntaje_obtenido,
+                puntaje_maximo=r.puntaje_maximo,
+                detalles=r.detalles,
+            )
+            db.add(nuevo)
+            saved.append(nuevo)
+
+    db.commit()
+    for s in saved:
+        db.refresh(s)
+
+    return saved
+
+
+@router.post("/sesion/{id_moca}/finalizar", response_model=MocaCompleteResponse)
+def finalizar_moca(
+    id_moca: int,
+    body: FinalizarMocaRequest,
+    pac: Paciente = Depends(_require_patient),
+    db: Session = Depends(get_db),
+):
+    moca = _get_moca_for_patient(db, id_moca, pac)
+    if moca.completada:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La sesión ya fue completada",
+        )
+
+    moca.puntaje_total = body.puntaje_total
+    moca.clasificacion = body.clasificacion
+    moca.completada = True
+    db.commit()
+    db.refresh(moca)
+
+    resultados = (
+        db.query(ResultadoArea)
+        .filter(ResultadoArea.id_moca == id_moca)
+        .order_by(ResultadoArea.id_area)
+        .all()
+    )
+
+    return MocaCompleteResponse(
+        id_moca=moca.id_moca,
+        puntaje_total=moca.puntaje_total,
+        clasificacion=moca.clasificacion,
+        completada=moca.completada,
+        resultados=[ResultadoAreaResponse.model_validate(r) for r in resultados],
+    )
+
+
+@router.get(
+    "/sesion/{id_moca}/resultados",
+    response_model=List[ResultadoAreaResponse],
+)
+def obtener_resultados(
+    id_moca: int,
+    user_role: tuple = Depends(get_current_user_role),
+    db: Session = Depends(get_db),
+):
+    user, role = user_role
+    moca = db.query(Moca).filter(Moca.id_moca == id_moca).first()
+    if not moca:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sesión no encontrada")
+
+    if role == "especialista":
+        esp = db.query(Especialista).filter(Especialista.id_usuario == user.id_usuario).first()
+        if not esp or esp.id_especialista != moca.id_especialista:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin acceso")
+    elif role == "paciente":
+        pac = db.query(Paciente).filter(Paciente.id_usuario == user.id_usuario).first()
+        if not pac or pac.id_paciente != moca.id_paciente:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Sin acceso")
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Rol no válido")
+
+    resultados = (
+        db.query(ResultadoArea)
+        .filter(ResultadoArea.id_moca == id_moca)
+        .order_by(ResultadoArea.id_area)
+        .all()
+    )
+    return resultados

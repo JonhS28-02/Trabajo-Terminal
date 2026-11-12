@@ -104,3 +104,35 @@ class CedulaValidationResponse(BaseModel):
     especialidad: Optional[str] = None
     institucion: Optional[str] = None
     message: Optional[str] = None
+
+
+class ProfileResponse(BaseModel):
+    nombre: str
+    apellido_paterno: str
+    apellido_materno: Optional[str] = None
+    email: str
+    fecha_nacimiento: date
+    role: str
+    cedula: Optional[str] = None
+    especialidad: Optional[str] = None
+    codigo_paciente: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
+class ProfileUpdateRequest(BaseModel):
+    nombre: Optional[str] = None
+    apellido_paterno: Optional[str] = None
+    apellido_materno: Optional[str] = None
+
+    @field_validator("nombre", "apellido_paterno", "apellido_materno")
+    @classmethod
+    def safe_text(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if re.search(r"[<>;'\"\\\x00]", v):
+            raise ValueError("Caracteres no permitidos")
+        if len(v) > 80:
+            raise ValueError("Máximo 80 caracteres")
+        return v

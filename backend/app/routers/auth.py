@@ -11,11 +11,13 @@ from ..models.usuario import Consentimiento, Credencial, Usuario
 from ..schemas.auth import (
     CedulaValidationResponse,
     LoginRequest,
+    ProfileResponse,
+    ProfileUpdateRequest,
     RegisterPatientRequest,
     RegisterSpecialistRequest,
     TokenResponse,
 )
-from ..security.jwt import create_access_token
+from ..security.jwt import create_access_token, get_current_user
 from ..security.password import hash_password, verify_password
 from ..services.cedula import validate_cedula
 
@@ -188,6 +190,50 @@ async def check_cedula(cedula: str):
 @router.post("/logout")
 def logout():
     return {"detail": "Sesión cerrada correctamente"}
+
+
+@router.get("/profile", response_model=ProfileResponse)
+def get_profile(user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
+    cred = db.query(Credencial).filter(Credencial.id_usuario == user.id_usuario).first()
+    role = _get_role(db, user.id_usuario)
+
+    result = {
+        "nombre": user.nombre,
+        "apellido_paterno": user.apellido_paterno,
+        "apellido_materno": user.apellido_materno,
+        "email": cred.usuario if cred else "",
+        "fecha_nacimiento": user.fecha_nacimiento,
+        "role": role,
+    }
+
+    if role == "especialista":
+        esp = db.query(Especialista).filter(Especialista.id_usuario == user.id_usuario).first()
+        if esp:
+            result["cedula"] = esp.cedula
+            result["especialidad"] = esp.especialidad
+    elif role == "paciente":
+        pac = db.query(Paciente).filter(Paciente.id_usuario == user.id_usuario).first()
+        if pac:
+            result["codigo_paciente"] = pac.codigo_paciente
+
+    return result
+
+
+@router.put("/profile", response_model=ProfileResponse)
+def update_profile(
+    body: ProfileUpdateRequest,
+    user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if body.nombre is not None:
+        user.nombre = body.nombre
+    if body.apellido_paterno is not None:
+        user.apellido_paterno = body.apellido_paterno
+    if body.apellido_materno is not None:
+        user.apellido_materno = body.apellido_materno
+    db.commit()
+    db.refresh(user)
+    return get_profile(user=user, db=db)
 
 
 def _check_email_unique(db: Session, email: str):

@@ -440,15 +440,50 @@ class _CodeInputState extends State<CodeInput> {
 
 /// Transición de desvanecimiento (equivale al "Smart animate" de Figma
 /// entre pantallas distintas).
-Route<T> fadeRoute<T>(Widget page, {int ms = 450}) {
+Route<T> fadeRoute<T>(Widget page, {int ms = 500}) {
   return PageRouteBuilder<T>(
     transitionDuration: Duration(milliseconds: ms),
     reverseTransitionDuration: Duration(milliseconds: ms),
     pageBuilder: (_, __, ___) => page,
-    transitionsBuilder: (_, animation, __, child) => FadeTransition(
-      opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
-      child: child,
-    ),
+    transitionsBuilder: (_, animation, __, child) {
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.06),
+            end: Offset.zero,
+          ).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
+Route<T> slideUpRoute<T>(Widget page, {int ms = 450}) {
+  return PageRouteBuilder<T>(
+    transitionDuration: Duration(milliseconds: ms),
+    reverseTransitionDuration: Duration(milliseconds: ms),
+    pageBuilder: (_, __, ___) => page,
+    transitionsBuilder: (_, animation, __, child) {
+      final curved =
+          CurvedAnimation(parent: animation, curve: Curves.easeOutExpo);
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.15),
+            end: Offset.zero,
+          ).animate(curved),
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(curved),
+            child: child,
+          ),
+        ),
+      );
+    },
   );
 }
 

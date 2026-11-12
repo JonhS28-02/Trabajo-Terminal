@@ -229,6 +229,85 @@ class ApiService {
     return data;
   }
 
+  // ── Resultados MoCA ──
+
+  static Future<List<dynamic>> guardarResultados(
+      int idMoca, List<Map<String, dynamic>> resultados, String token) async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/evaluacion/sesion/$idMoca/resultados'),
+      headers: _headers(token),
+      body: jsonEncode({'resultados': resultados}),
+    );
+    if (resp.statusCode != 201) {
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      throw ApiException(_extractError(data), resp.statusCode);
+    }
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> finalizarMoca(
+      int idMoca, int puntajeTotal, String clasificacion, String token) async {
+    final resp = await http.post(
+      Uri.parse('$baseUrl/evaluacion/sesion/$idMoca/finalizar'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'puntaje_total': puntajeTotal,
+        'clasificacion': clasificacion,
+      }),
+    );
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw ApiException(_extractError(data), resp.statusCode);
+    }
+    return data;
+  }
+
+  static Future<List<dynamic>> obtenerResultados(
+      int idMoca, String token) async {
+    final resp = await http.get(
+      Uri.parse('$baseUrl/evaluacion/sesion/$idMoca/resultados'),
+      headers: _headers(token),
+    );
+    if (resp.statusCode != 200) {
+      throw ApiException('Error al obtener resultados', resp.statusCode);
+    }
+    return jsonDecode(resp.body) as List<dynamic>;
+  }
+
+  static Future<Map<String, dynamic>> getProfile(String token) async {
+    final resp = await http.get(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: _headers(token),
+    );
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw ApiException(_extractError(data), resp.statusCode);
+    }
+    return data;
+  }
+
+  static Future<Map<String, dynamic>> updateProfile({
+    required String token,
+    String? nombre,
+    String? apellidoPaterno,
+    String? apellidoMaterno,
+  }) async {
+    final body = <String, dynamic>{};
+    if (nombre != null) body['nombre'] = nombre;
+    if (apellidoPaterno != null) body['apellido_paterno'] = apellidoPaterno;
+    if (apellidoMaterno != null) body['apellido_materno'] = apellidoMaterno;
+    final resp = await http.put(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: _headers(token),
+      body: jsonEncode(body),
+    );
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw ApiException(_extractError(data), resp.statusCode);
+    }
+    return data;
+  }
+
   static String _extractError(Map<String, dynamic> data) {
     if (data['detail'] is String) return data['detail'] as String;
     if (data['detail'] is List) {

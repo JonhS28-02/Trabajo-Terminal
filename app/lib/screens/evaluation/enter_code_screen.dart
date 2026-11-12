@@ -28,12 +28,16 @@ class _EnterCodeScreenState extends State<EnterCodeScreen> {
     try {
       final token = await SessionService.getToken();
       if (token == null) return;
-      await ApiService.validarCodigoSupervision(_code, token);
+      final data = await ApiService.validarCodigoSupervision(_code, token);
       if (!mounted) return;
+      final idMoca = data['id_moca'] as int;
       Navigator.of(context).pushReplacement(
         fadeRoute(MocaInstructionsScreen(
           sections: mocaSections,
           patientName: '',
+          idMoca: idMoca,
+          token: token,
+          role: 'paciente',
         )),
       );
     } on ApiException catch (e) {

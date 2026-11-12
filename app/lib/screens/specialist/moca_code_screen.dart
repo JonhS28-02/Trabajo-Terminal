@@ -71,11 +71,15 @@ class _MocaCodeScreenState extends State<MocaCodeScreen> {
     if (mounted) setState(() => _secondsLeft = diff > 0 ? diff : 0);
   }
 
-  void _verInstrucciones() {
+  Future<void> _verInstrucciones() async {
+    final token = await SessionService.getToken();
+    if (token == null || !mounted) return;
     Navigator.of(context).push(
       fadeRoute(MocaInstructionsScreen(
         sections: mocaSections,
         patientName: _patientName,
+        idMoca: 0,
+        token: token,
       )),
     );
   }
@@ -163,11 +167,15 @@ class _MocaCodeScreenState extends State<MocaCodeScreen> {
                         style: AppText.subtitle.copyWith(color: AppColors.hint),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        _codigo!.split('').join('  '),
-                        style: AppText.title.copyWith(
-                          fontSize: 36,
-                          letterSpacing: 4,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _codigo!.split('').join('  '),
+                          maxLines: 1,
+                          style: AppText.title.copyWith(
+                            fontSize: 36,
+                            letterSpacing: 4,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

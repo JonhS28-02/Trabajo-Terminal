@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/qr_scanner_sheet.dart';
 
 class AddPatientScreen extends StatefulWidget {
   const AddPatientScreen({super.key});
@@ -110,7 +111,37 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
                 isValid: _valid,
               ),
             ),
-            const SizedBox(height: 60),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: AppSizes.buttonHeight,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => QrScannerSheet(
+                      onScanned: (code) {
+                        _codeCtrl.text = code;
+                        _touched = true;
+                        _validate();
+                      },
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_scanner, size: 20),
+                label: Text('ESCANEAR QR', style: AppText.button),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: AppColors.purple, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radius),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
             PrimaryButton(
               label: 'VINCULAR PACIENTE',
               loading: _loading,
