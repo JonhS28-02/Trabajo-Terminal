@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from .database import SessionLocal, engine, Base
+from .database import SessionLocal
 from .models.catalogos import (
     CatEscolaridad,
     CatEnfermedad,
@@ -65,6 +65,17 @@ ENFERMEDADES = [
     ("Deficiencia de vitamina B12", "Nutricional", "VITB12"),
     ("Insomnio", "Sueño", "SUENO"),
     ("Apnea del sueño", "Sueño", "SUENO"),
+    ("Evento vascular cerebral (EVC) o isquemia transitoria", "Neurológica", "ACV_TIA"),
+    ("Epilepsia o crisis convulsivas", "Neurológica", "EPILEPSIA"),
+    ("Trastorno de ansiedad", "Neuropsiquiátrica", "PSIQUIATRICA"),
+    ("Trastorno bipolar", "Neuropsiquiátrica", "PSIQUIATRICA"),
+    ("Esquizofrenia", "Neuropsiquiátrica", "PSIQUIATRICA"),
+    ("Trastorno obsesivo-compulsivo", "Neuropsiquiátrica", "PSIQUIATRICA"),
+    ("Otro trastorno psiquiátrico", "Neuropsiquiátrica", "PSIQUIATRICA"),
+    ("Angina de pecho o enfermedad coronaria", "Cardiovascular", "CARDIOVASCULAR"),
+    ("Enfermedad valvular cardíaca", "Cardiovascular", "CARDIOVASCULAR"),
+    ("Abuso de alcohol o alcoholismo", "Sustancias", "ALCOHOL_ABUSO"),
+    ("Abuso de drogas u otras sustancias", "Sustancias", "DROGAS"),
 ]
 
 PARENTESCOS = [
@@ -103,7 +114,6 @@ def _seed_if_empty(db: Session, model, rows_fn) -> None:
 def seed(db: Session | None = None) -> None:
     own_session = db is None
     if own_session:
-        Base.metadata.create_all(bind=engine)
         db = SessionLocal()
 
     try:
@@ -118,14 +128,10 @@ def seed(db: Session | None = None) -> None:
         _seed_if_empty(db, CatOcupacion, lambda: [
             CatOcupacion(ocupacion=name) for name in OCUPACIONES
         ])
-        _seed_if_empty(db, CatEnfermedad, lambda: [
-            CatEnfermedad(
-                nombre_enfermedad=name,
-                categoria=cat,
-                indicador_modelo=ind,
-            )
-            for name, cat, ind in ENFERMEDADES
-        ])
+        existentes = {n for (n,) in db.query(CatEnfermedad.nombre_enfermedad).all()}
+        for name, cat, ind in ENFERMEDADES:
+            if name not in existentes:
+                db.add(CatEnfermedad(nombre_enfermedad=name, categoria=cat, indicador_modelo=ind))
         _seed_if_empty(db, CatParentesco, lambda: [
             CatParentesco(nombre_parentesco=name) for name in PARENTESCOS
         ])

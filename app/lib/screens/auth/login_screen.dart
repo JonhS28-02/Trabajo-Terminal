@@ -7,6 +7,7 @@ import '../../widgets/app_widgets.dart';
 import '../main_shell.dart';
 import '../register/register_transition_screen.dart';
 import 'recover_email_screen.dart';
+import '../../widgets/entrance.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -67,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const HeaderImage(
               asset: 'assets/images/login.jpg',
               height: 279,
@@ -131,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-          ],
+          ]),
         ),
       ),
     );

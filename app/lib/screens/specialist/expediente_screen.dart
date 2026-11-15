@@ -4,6 +4,13 @@ import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/entrance.dart';
+
+/// Valores de `indicador_modelo` que el modelo de predicción sí utiliza.
+const _indicadoresModelo = {
+  'DIABETES', 'HIPERTENSION', 'HIPERLIPIDEMIA', 'DEPRESION', 'PSIQUIATRICA', 'TCE',
+  'EPILEPSIA', 'CARDIOVASCULAR', 'ACV_TIA', 'ALCOHOL_ABUSO', 'DROGAS',
+};
 
 class ExpedienteScreen extends StatefulWidget {
   const ExpedienteScreen({super.key, required this.patient});
@@ -19,7 +26,6 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
   bool _saving = false;
   bool _isEdit = false;
 
-  // Catálogos
   List<Map<String, dynamic>> _escolaridades = [];
   List<Map<String, dynamic>> _ocupaciones = [];
   List<Map<String, dynamic>> _enfermedades = [];
@@ -27,7 +33,6 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
   List<Map<String, dynamic>> _consumoAlcohol = [];
   List<Map<String, dynamic>> _consumoTabaco = [];
 
-  // Selecciones
   int? _idEscolaridad;
   int? _idOcupacion;
   int? _idAlcohol;
@@ -100,11 +105,8 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
   }
 
   Future<void> _save() async {
-    if (_idEscolaridad == null ||
-        _idOcupacion == null ||
-        _idAlcohol == null ||
-        _idTabaco == null) {
-      showDemoMessage(context, 'Completa todos los campos obligatorios');
+    if (_idEscolaridad == null || _idOcupacion == null || _idAlcohol == null || _idTabaco == null) {
+      showDemoMessage(context, 'Completa escolaridad, ocupación, alcohol y tabaco');
       return;
     }
 
@@ -121,10 +123,7 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
         'id_consumo_tabaco': _idTabaco,
         'enfermedades': _enfSeleccionadas.toList(),
         'antecedentes_familiares': _antecedentes
-            .map((a) => {
-                  'id_parentesco': a.idParentesco,
-                  'id_enfermedad': a.idEnfermedad,
-                })
+            .map((a) => {'id_parentesco': a.idParentesco, 'id_enfermedad': a.idEnfermedad})
             .toList(),
       };
 
@@ -146,203 +145,225 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
     }
   }
 
+  int get _completos =>
+      [_idEscolaridad, _idOcupacion, _idAlcohol, _idTabaco].where((v) => v != null).length;
+
   @override
   Widget build(BuildContext context) {
     final nombre = widget.patient['nombre'] as String? ?? '';
     final apellido = widget.patient['apellido_paterno'] as String? ?? '';
+    final codigo = widget.patient['codigo_paciente'] as String? ?? '';
+
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppColors.purple)),
+      );
+    }
 
     return Scaffold(
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.purple))
-          : SingleChildScrollView(
-              padding: EdgeInsets.only(
-                top: MediaQuery.paddingOf(context).top + 16,
-                left: AppSizes.gutter,
-                right: AppSizes.gutter,
-                bottom: 28 + MediaQuery.paddingOf(context).bottom,
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(20, 12, 20, 12 + MediaQuery.paddingOf(context).bottom),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+        ),
+        child: PrimaryButton(
+          label: _isEdit ? 'GUARDAR CAMBIOS' : 'CREAR EXPEDIENTE',
+          loading: _saving,
+          onPressed: _save,
+        ),
+      ),
+      body: ListView(
+        padding: EdgeInsets.only(
+          top: MediaQuery.paddingOf(context).top + 16,
+          left: 20,
+          right: 20,
+          bottom: 24,
+        ),
+        children: staggered([
+          const Align(alignment: Alignment.centerLeft, child: CircleBackButton()),
+          const SizedBox(height: 16),
+          Text(_isEdit ? 'Expediente clínico' : 'Nuevo expediente',
+              style: AppText.title.copyWith(fontSize: 24)),
+          const SizedBox(height: 14),
+          _cabecera(nombre, apellido, codigo),
+          const SizedBox(height: 14),
+
+          _Seccion(
+            icon: Icons.school_outlined,
+            titulo: 'Datos generales',
+            children: [
+              const _Etiqueta('Escolaridad'),
+              _DropdownField(
+                value: _idEscolaridad,
+                items: _escolaridades
+                    .map((e) => _DropItem(e['id'] as int, '${e['nombre']} (${e['anios'] ?? 0} años)'))
+                    .toList(),
+                hint: 'Selecciona escolaridad',
+                onChanged: (v) => setState(() => _idEscolaridad = v),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleBackButton(),
-                  const SizedBox(height: 24),
-                  Text(
-                    _isEdit ? 'Editar expediente' : 'Nuevo expediente',
-                    style: AppText.title.copyWith(fontSize: 24),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$nombre $apellido',
-                    style: AppText.subtitle.copyWith(color: AppColors.hint, fontSize: 14),
-                  ),
-                  const SizedBox(height: 28),
+              const SizedBox(height: 14),
+              const _Etiqueta('Ocupación'),
+              _DropdownField(
+                value: _idOcupacion,
+                items: _ocupaciones.map((e) => _DropItem(e['id'] as int, e['nombre'] as String)).toList(),
+                hint: 'Selecciona ocupación',
+                onChanged: (v) => setState(() => _idOcupacion = v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
 
-                  // ── Escolaridad ──
-                  _SectionTitle('Escolaridad'),
-                  const SizedBox(height: 12),
-                  _DropdownField(
-                    value: _idEscolaridad,
-                    items: _escolaridades.map((e) => _DropItem(
-                      e['id'] as int,
-                      '${e['nombre']} (${e['anios'] ?? 0} años)',
-                    )).toList(),
-                    hint: 'Selecciona escolaridad',
-                    onChanged: (v) => setState(() => _idEscolaridad = v),
-                  ),
+          _Seccion(
+            icon: Icons.local_bar_outlined,
+            titulo: 'Hábitos',
+            children: [
+              const _Etiqueta('Consumo de alcohol'),
+              _opciones(_consumoAlcohol, _idAlcohol, (v) => setState(() => _idAlcohol = v)),
+              const SizedBox(height: 14),
+              const _Etiqueta('Consumo de tabaco'),
+              _opciones(_consumoTabaco, _idTabaco, (v) => setState(() => _idTabaco = v)),
+            ],
+          ),
+          const SizedBox(height: 14),
 
-                  const SizedBox(height: 24),
-
-                  // ── Ocupación ──
-                  _SectionTitle('Ocupación'),
-                  const SizedBox(height: 12),
-                  _DropdownField(
-                    value: _idOcupacion,
-                    items: _ocupaciones.map((e) => _DropItem(
-                      e['id'] as int,
-                      e['nombre'] as String,
-                    )).toList(),
-                    hint: 'Selecciona ocupación',
-                    onChanged: (v) => setState(() => _idOcupacion = v),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Consumo alcohol ──
-                  _SectionTitle('Consumo de alcohol'),
-                  const SizedBox(height: 12),
-                  _DropdownField(
-                    value: _idAlcohol,
-                    items: _consumoAlcohol.map((e) => _DropItem(
-                      e['id'] as int,
-                      e['nombre'] as String,
-                    )).toList(),
-                    hint: 'Selecciona nivel de consumo',
-                    onChanged: (v) => setState(() => _idAlcohol = v),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Consumo tabaco ──
-                  _SectionTitle('Consumo de tabaco'),
-                  const SizedBox(height: 12),
-                  _DropdownField(
-                    value: _idTabaco,
-                    items: _consumoTabaco.map((e) => _DropItem(
-                      e['id'] as int,
-                      e['nombre'] as String,
-                    )).toList(),
-                    hint: 'Selecciona nivel de consumo',
-                    onChanged: (v) => setState(() => _idTabaco = v),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // ── Enfermedades ──
-                  _SectionTitle('Enfermedades del paciente'),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Selecciona las que apliquen',
+          _Seccion(
+            icon: Icons.medical_information_outlined,
+            titulo: 'Antecedentes personales',
+            trailing: _Contador(_enfSeleccionadas.length),
+            children: [
+              Row(children: [
+                const _PuntoModelo(),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Lo usa el modelo de predicción. Lo que no marques se toma como ausente.',
                     style: AppText.subtitle.copyWith(color: AppColors.hint, fontSize: 11),
                   ),
-                  const SizedBox(height: 12),
-                  _buildEnfermedades(),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              ..._buildEnfermedades(),
+            ],
+          ),
+          const SizedBox(height: 14),
 
-                  const SizedBox(height: 28),
-
-                  // ── Antecedentes familiares ──
-                  _SectionTitle('Antecedentes familiares'),
-                  const SizedBox(height: 12),
-                  ..._buildAntecedentes(),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: _addAntecedente,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.gradient,
-                          ),
-                          child: const Icon(Icons.add, color: Colors.white, size: 16),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('Agregar antecedente', style: AppText.label.copyWith(fontSize: 13)),
-                      ],
-                    ),
+          _Seccion(
+            icon: Icons.family_restroom,
+            titulo: 'Antecedentes familiares',
+            trailing: _Contador(_antecedentes.length),
+            children: [
+              if (_antecedentes.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text('Sin antecedentes familiares registrados.',
+                      style: AppText.subtitle.copyWith(color: AppColors.hint)),
+                ),
+              ..._buildAntecedentes(),
+              GestureDetector(
+                onTap: _addAntecedente,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.purple.withValues(alpha: 0.6)),
                   ),
-
-                  const SizedBox(height: 40),
-
-                  PrimaryButton(
-                    label: _isEdit ? 'GUARDAR CAMBIOS' : 'CREAR EXPEDIENTE',
-                    loading: _saving,
-                    onPressed: _save,
-                  ),
-                ],
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Icon(Icons.add, color: Colors.white, size: 18),
+                    const SizedBox(width: 6),
+                    Text('Agregar antecedente', style: AppText.label.copyWith(fontSize: 13)),
+                  ]),
+                ),
               ),
-            ),
+            ],
+          ),
+        ]),
+      ),
     );
   }
 
-  Widget _buildEnfermedades() {
-    String? lastCat;
-    final widgets = <Widget>[];
-    for (final enf in _enfermedades) {
-      final cat = enf['categoria'] as String? ?? '';
-      if (cat != lastCat) {
-        lastCat = cat;
-        widgets.add(Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Text(
-            cat,
-            style: AppText.subtitle.copyWith(
-              color: AppColors.purple,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-        ));
-      }
-      final id = enf['id'] as int;
-      final selected = _enfSeleccionadas.contains(id);
-      widgets.add(
-        GestureDetector(
-          onTap: () => setState(() {
-            selected ? _enfSeleccionadas.remove(id) : _enfSeleccionadas.add(id);
-          }),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 22,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    gradient: selected ? AppColors.gradient : null,
-                    border: selected ? null : Border.all(color: AppColors.hint, width: 1.5),
-                  ),
-                  child: selected
-                      ? const Icon(Icons.check, color: Colors.white, size: 16)
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    enf['nombre'] as String? ?? '',
-                    style: AppText.input.copyWith(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
+  Widget _cabecera(String nombre, String apellido, String codigo) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [
+          AppColors.purpleDark.withValues(alpha: 0.7),
+          AppColors.purple.withValues(alpha: 0.35),
+        ]),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.14)),
+          child: Center(
+            child: Text(nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+                style: AppText.title.copyWith(fontSize: 20)),
           ),
         ),
-      );
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('$nombre $apellido', style: AppText.label.copyWith(fontSize: 15)),
+            const SizedBox(height: 2),
+            Text('ID: $codigo', style: AppText.subtitle.copyWith(color: Colors.white70, fontSize: 11)),
+          ]),
+        ),
+        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text('$_completos/4', style: AppText.label.copyWith(fontSize: 15)),
+          Text('obligatorios', style: AppText.subtitle.copyWith(color: Colors.white70, fontSize: 10)),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _opciones(List<Map<String, dynamic>> items, int? seleccion, ValueChanged<int> onTap) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final e in items)
+          _ChipSeleccion(
+            texto: e['nombre'] as String,
+            seleccionado: seleccion == e['id'],
+            onTap: () => onTap(e['id'] as int),
+          ),
+      ],
+    );
+  }
+
+  List<Widget> _buildEnfermedades() {
+    final porCategoria = <String, List<Map<String, dynamic>>>{};
+    for (final enf in _enfermedades) {
+      porCategoria.putIfAbsent(enf['categoria'] as String? ?? 'General', () => []).add(enf);
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
+    return [
+      for (final entry in porCategoria.entries) ...[
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
+          child: Text(entry.key.toUpperCase(),
+              style: AppText.label.copyWith(color: Colors.white70, fontSize: 10.5, letterSpacing: 0.8)),
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final enf in entry.value)
+              _ChipSeleccion(
+                texto: enf['nombre'] as String? ?? '',
+                seleccionado: _enfSeleccionadas.contains(enf['id']),
+                usaModelo: _indicadoresModelo.contains(enf['indicador_modelo']),
+                onTap: () => setState(() {
+                  final id = enf['id'] as int;
+                  _enfSeleccionadas.contains(id) ? _enfSeleccionadas.remove(id) : _enfSeleccionadas.add(id);
+                }),
+              ),
+          ],
+        ),
+      ],
+    ];
   }
 
   List<Widget> _buildAntecedentes() {
@@ -350,44 +371,37 @@ class _ExpedienteScreenState extends State<ExpedienteScreen> {
       final ant = _antecedentes[i];
       return Container(
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.field,
-          borderRadius: BorderRadius.circular(10),
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: _DropdownField(
-                    value: ant.idParentesco,
-                    items: _parentescos.map((e) => _DropItem(
-                      e['id'] as int,
-                      e['nombre'] as String,
-                    )).toList(),
-                    hint: 'Parentesco',
-                    onChanged: (v) => setState(() => ant.idParentesco = v!),
-                    compact: true,
-                  ),
+            Expanded(
+              child: Column(children: [
+                _DropdownField(
+                  value: ant.idParentesco,
+                  items: _parentescos.map((e) => _DropItem(e['id'] as int, e['nombre'] as String)).toList(),
+                  hint: 'Parentesco',
+                  onChanged: (v) => setState(() => ant.idParentesco = v!),
+                  compact: true,
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () => setState(() => _antecedentes.removeAt(i)),
-                  child: const Icon(Icons.close, color: Colors.redAccent, size: 20),
+                const SizedBox(height: 8),
+                _DropdownField(
+                  value: ant.idEnfermedad,
+                  items: _enfermedades.map((e) => _DropItem(e['id'] as int, e['nombre'] as String)).toList(),
+                  hint: 'Enfermedad',
+                  onChanged: (v) => setState(() => ant.idEnfermedad = v!),
+                  compact: true,
                 ),
-              ],
+              ]),
             ),
-            const SizedBox(height: 8),
-            _DropdownField(
-              value: ant.idEnfermedad,
-              items: _enfermedades.map((e) => _DropItem(
-                e['id'] as int,
-                e['nombre'] as String,
-              )).toList(),
-              hint: 'Enfermedad',
-              onChanged: (v) => setState(() => ant.idEnfermedad = v!),
-              compact: true,
+            const SizedBox(width: 6),
+            IconButton(
+              onPressed: () => setState(() => _antecedentes.removeAt(i)),
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+              tooltip: 'Quitar antecedente',
             ),
           ],
         ),
@@ -411,13 +425,130 @@ class _AntFamiliar {
   _AntFamiliar({required this.idParentesco, required this.idEnfermedad});
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+class _Seccion extends StatelessWidget {
+  const _Seccion({required this.icon, required this.titulo, required this.children, this.trailing});
+  final IconData icon;
+  final String titulo;
+  final List<Widget> children;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: AppColors.field, borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppColors.gradient),
+              child: Icon(icon, color: Colors.white, size: 17),
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(titulo, style: AppText.label.copyWith(fontSize: 15))),
+            if (trailing != null) trailing!,
+          ]),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _Etiqueta extends StatelessWidget {
+  const _Etiqueta(this.text);
   final String text;
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: AppText.label.copyWith(fontSize: 16));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: AppText.subtitle.copyWith(color: Colors.white70, fontSize: 12)),
+    );
+  }
+}
+
+class _Contador extends StatelessWidget {
+  const _Contador(this.n);
+  final int n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: n > 0 ? AppColors.purple.withValues(alpha: 0.35) : Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text('$n', style: AppText.label.copyWith(fontSize: 12)),
+    );
+  }
+}
+
+class _PuntoModelo extends StatelessWidget {
+  const _PuntoModelo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 7,
+      height: 7,
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFF59E0B)),
+    );
+  }
+}
+
+class _ChipSeleccion extends StatelessWidget {
+  const _ChipSeleccion({
+    required this.texto,
+    required this.seleccionado,
+    required this.onTap,
+    this.usaModelo = false,
+  });
+  final String texto;
+  final bool seleccionado;
+  final bool usaModelo;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: seleccionado ? AppColors.gradient : null,
+          color: seleccionado ? null : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: seleccionado ? AppColors.purple : Colors.white.withValues(alpha: 0.10),
+          ),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          if (seleccionado) ...[
+            const Icon(Icons.check, color: Colors.white, size: 14),
+            const SizedBox(width: 5),
+          ],
+          Flexible(
+            child: Text(texto,
+                style: AppText.subtitle.copyWith(
+                  fontSize: 12.5,
+                  color: seleccionado ? Colors.white : Colors.white70,
+                  fontWeight: seleccionado ? FontWeight.w600 : FontWeight.w400,
+                )),
+          ),
+          if (usaModelo) ...[
+            const SizedBox(width: 6),
+            const _PuntoModelo(),
+          ],
+        ]),
+      ),
+    );
   }
 }
 
@@ -445,24 +576,27 @@ class _DropdownField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: compact ? 40 : 51,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: compact ? 42 : 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: compact ? const Color(0xFF2A2A2A) : AppColors.field,
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(AppSizes.radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: value,
           isExpanded: true,
           dropdownColor: const Color(0xFF2A2A2A),
-          hint: Text(hint, style: AppText.hint.copyWith(fontSize: compact ? 12 : 14)),
-          style: AppText.input.copyWith(fontSize: compact ? 12 : 14),
+          hint: Text(hint, style: AppText.hint.copyWith(fontSize: compact ? 12.5 : 14)),
+          style: AppText.input.copyWith(fontSize: compact ? 12.5 : 14),
           icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.hint, size: 20),
-          items: items.map((item) => DropdownMenuItem(
-            value: item.id,
-            child: Text(item.label, overflow: TextOverflow.ellipsis),
-          )).toList(),
+          items: items
+              .map((item) => DropdownMenuItem(
+                    value: item.id,
+                    child: Text(item.label, overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
           onChanged: onChanged,
         ),
       ),

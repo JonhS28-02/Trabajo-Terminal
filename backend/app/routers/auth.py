@@ -10,16 +10,20 @@ from ..models.paciente import Paciente
 from ..models.usuario import Consentimiento, Credencial, Usuario
 from ..schemas.auth import (
     CedulaValidationResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     ProfileResponse,
     ProfileUpdateRequest,
     RegisterPatientRequest,
     RegisterSpecialistRequest,
+    ResetPasswordRequest,
     TokenResponse,
+    VerifyResetCodeRequest,
 )
 from ..security.jwt import create_access_token, get_current_user
 from ..security.password import hash_password, verify_password
 from ..services.cedula import validate_cedula
+from ..services.email import send_recovery_email
 
 
 def _generate_codigo_paciente(db: Session) -> str:
@@ -187,6 +191,70 @@ async def check_cedula(cedula: str):
     return await validate_cedula(cedula.strip())
 
 
+RESET_CODE_MINUTES = 10
+
+
+@router.post("/forgot-password")
+def forgot_password(body: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    cred = db.query(Credencial).filter(Credencial.usuario == body.email.lower()).first()
+    if cred is None:
+        return {"detail": "Si el correo existe, se enviará un código de recuperación."}
+
+    code = str(randint(100000, 999999))
+    cred.codigo_recuperacion = code
+    cred.codigo_recuperacion_expira = (datetime.now(timezone.utc) + timedelta(minutes=RESET_CODE_MINUTES)).replace(tzinfo=None)
+    db.commit()
+
+    user = db.query(Usuario).filter(Usuario.id_usuario == cred.id_usuario).first()
+    nombre = user.nombre if user else "Usuario"
+    send_recovery_email(cred.usuario, code, nombre)
+
+    return {"detail": "Si el correo existe, se enviará un código de recuperación."}
+
+
+@router.post("/verify-reset-code")
+def verify_reset_code(body: VerifyResetCodeRequest, db: Session = Depends(get_db)):
+    cred = db.query(Credencial).filter(Credencial.usuario == body.email.lower()).first()
+    if cred is None:
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if (
+        not cred.codigo_recuperacion
+        or cred.codigo_recuperacion != body.code
+        or not cred.codigo_recuperacion_expira
+        or cred.codigo_recuperacion_expira < now
+    ):
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+
+    return {"valid": True}
+
+
+@router.post("/reset-password")
+def reset_password(body: ResetPasswordRequest, db: Session = Depends(get_db)):
+    cred = db.query(Credencial).filter(Credencial.usuario == body.email.lower()).first()
+    if cred is None:
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if (
+        not cred.codigo_recuperacion
+        or cred.codigo_recuperacion != body.code
+        or not cred.codigo_recuperacion_expira
+        or cred.codigo_recuperacion_expira < now
+    ):
+        raise HTTPException(status_code=400, detail="Código inválido o expirado")
+
+    cred.contrasena_hash = hash_password(body.new_password)
+    cred.codigo_recuperacion = None
+    cred.codigo_recuperacion_expira = None
+    cred.intentos_fallidos = 0
+    cred.bloqueado_hasta = None
+    db.commit()
+
+    return {"detail": "Contraseña actualizada correctamente"}
+
+
 @router.post("/logout")
 def logout():
     return {"detail": "Sesión cerrada correctamente"}
@@ -231,6 +299,22 @@ def update_profile(
         user.apellido_paterno = body.apellido_paterno
     if body.apellido_materno is not None:
         user.apellido_materno = body.apellido_materno
+    if body.fecha_nacimiento is not None:
+        user.fecha_nacimiento = body.fecha_nacimiento
+    if body.email is not None:
+        cred = db.query(Credencial).filter(Credencial.id_usuario == user.id_usuario).first()
+        if cred:
+            existing = db.query(Credencial).filter(
+                Credencial.usuario == body.email.lower(),
+                Credencial.id_credencial != cred.id_credencial,
+            ).first()
+            if existing:
+                raise HTTPException(status_code=409, detail="Este correo ya está registrado")
+            cred.usuario = body.email.lower()
+    if body.password is not None:
+        cred = db.query(Credencial).filter(Credencial.id_usuario == user.id_usuario).first()
+        if cred:
+            cred.contrasena_hash = hash_password(body.password)
     db.commit()
     db.refresh(user)
     return get_profile(user=user, db=db)

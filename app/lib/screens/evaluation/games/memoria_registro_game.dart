@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 import '../../../data/moca_result.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class MemoriaRegistroGame extends StatefulWidget {
-  const MemoriaRegistroGame({super.key});
+  const MemoriaRegistroGame({super.key, required this.palabras});
+  final List<String> palabras;
 
   @override
   State<MemoriaRegistroGame> createState() => _MemoriaRegistroGameState();
 }
 
 class _MemoriaRegistroGameState extends State<MemoriaRegistroGame> {
-  static const _palabras = ['rostro', 'seda', 'iglesia', 'clavel', 'rojo'];
+  late final List<String> _palabras = widget.palabras;
 
   int _ensayo = 1;
   bool _showingWords = true;
@@ -105,7 +107,7 @@ class _MemoriaRegistroGameState extends State<MemoriaRegistroGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Memoria (Registro)',
@@ -169,7 +171,7 @@ class _MemoriaRegistroGameState extends State<MemoriaRegistroGame> {
                 onPressed: _nextEnsayo,
               ),
             ],
-          ],
+          ]),
         ),
       ),
     );

@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../../data/moca_result.dart';
+import '../../../data/moca_variants.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class LenguajeGame extends StatefulWidget {
-  const LenguajeGame({super.key});
+  const LenguajeGame({super.key, required this.variant});
+  final LenguajeVariant variant;
 
   @override
   State<LenguajeGame> createState() => _LenguajeGameState();
@@ -18,10 +21,7 @@ class _LenguajeGameState extends State<LenguajeGame> {
   int _subTask = 0;
 
   // ── Repetición de oraciones ──
-  static const _oraciones = [
-    'El gato se escondió bajo el sofá cuando los perros entraron en la sala.',
-    'Espero que él le entregue el mensaje una vez que ella se lo pida.',
-  ];
+  late final List<String> _oraciones = widget.variant.oraciones;
   final _oraCtrls = List.generate(2, (_) => TextEditingController());
   final _oraChecked = [false, false];
   final _oraCorrect = [false, false];
@@ -166,7 +166,7 @@ class _LenguajeGameState extends State<LenguajeGame> {
     final text = _fluidezCtrl.text.trim().toLowerCase();
     if (text.isEmpty) return 0;
     final words = text.split(RegExp(r'[\s,;.]+'))
-        .where((w) => w.isNotEmpty && w.startsWith('f'))
+        .where((w) => w.isNotEmpty && w.startsWith(widget.variant.letraFluidez.toLowerCase()))
         .toSet();
     return words.length;
   }
@@ -215,7 +215,7 @@ class _LenguajeGameState extends State<LenguajeGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Lenguaje', style: AppText.title.copyWith(fontSize: 20)),
@@ -229,7 +229,7 @@ class _LenguajeGameState extends State<LenguajeGame> {
             const SizedBox(height: 24),
             if (_subTask == 0) _buildOraciones(),
             if (_subTask == 1) _buildFluidez(),
-          ],
+          ]),
         ),
       ),
     );
@@ -354,7 +354,7 @@ class _LenguajeGameState extends State<LenguajeGame> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-            'Escribe todas las palabras que puedas que empiecen con la letra F.\n'
+            'Escribe todas las palabras que puedas que empiecen con la letra ${widget.variant.letraFluidez}.\n'
             'Sepáralas con comas o espacios. Se requieren ≥11 para obtener el punto.',
             style: AppText.subtitle
                 .copyWith(color: Colors.white70, fontSize: 13)),
@@ -383,13 +383,13 @@ class _LenguajeGameState extends State<LenguajeGame> {
         ),
         const SizedBox(height: 20),
         AppField(
-          hint: 'fresa, fútbol, familia...',
+          hint: 'Palabras con ${widget.variant.letraFluidez}...',
           controller: _fluidezCtrl,
           onChanged: (_) => setState(() {}),
         ),
         const SizedBox(height: 12),
         Center(
-          child: Text('Palabras con F: $_wordCount',
+          child: Text('Palabras con ${widget.variant.letraFluidez}: $_wordCount',
               style: AppText.label.copyWith(color: AppColors.purple, fontSize: 16)),
         ),
         const SizedBox(height: 24),

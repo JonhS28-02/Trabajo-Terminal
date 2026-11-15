@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import 'credentials_screen.dart';
+import '../../widgets/entrance.dart';
 
 class ValidationScreen extends StatefulWidget {
   const ValidationScreen({super.key, required this.userData});
@@ -86,7 +87,7 @@ class _ValidationScreenState extends State<ValidationScreen> {
           padding: const EdgeInsets.only(bottom: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: staggered([
               const Padding(
                 padding: EdgeInsets.only(left: 15, top: 8),
                 child: CircleBackButton(),
@@ -145,7 +146,7 @@ class _ValidationScreenState extends State<ValidationScreen> {
                   ],
                 ),
               ),
-            ],
+            ]),
           ),
         ),
       ),

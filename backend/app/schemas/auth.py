@@ -120,10 +120,59 @@ class ProfileResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyResetCodeRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+    @field_validator("code")
+    @classmethod
+    def code_format(cls, v: str) -> str:
+        v = v.strip()
+        if not re.match(r"^\d{6}$", v):
+            raise ValueError("El código debe ser de 6 dígitos")
+        return v
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
+    @field_validator("code")
+    @classmethod
+    def code_format(cls, v: str) -> str:
+        v = v.strip()
+        if not re.match(r"^\d{6}$", v):
+            raise ValueError("El código debe ser de 6 dígitos")
+        return v
+
+    @field_validator("new_password")
+    @classmethod
+    def strong_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        if len(v) > 128:
+            raise ValueError("Máximo 128 caracteres")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Debe contener al menos una mayúscula")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Debe contener al menos una minúscula")
+        if not re.search(r"\d", v):
+            raise ValueError("Debe contener al menos un número")
+        return v
+
+
 class ProfileUpdateRequest(BaseModel):
     nombre: Optional[str] = None
     apellido_paterno: Optional[str] = None
     apellido_materno: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
 
     @field_validator("nombre", "apellido_paterno", "apellido_materno")
     @classmethod
@@ -135,4 +184,33 @@ class ProfileUpdateRequest(BaseModel):
             raise ValueError("Caracteres no permitidos")
         if len(v) > 80:
             raise ValueError("Máximo 80 caracteres")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def strong_password(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if len(v) < 8:
+            raise ValueError("La contraseña debe tener al menos 8 caracteres")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Debe contener al menos una mayúscula")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Debe contener al menos una minúscula")
+        if not re.search(r"\d", v):
+            raise ValueError("Debe contener al menos un número")
+        return v
+
+    @field_validator("fecha_nacimiento")
+    @classmethod
+    def valid_birthdate(cls, v: Optional[date]) -> Optional[date]:
+        if v is None:
+            return v
+        from datetime import date as d
+        today = d.today()
+        age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
+        if age < 18:
+            raise ValueError("Debe ser mayor de 18 años")
+        if age > 120:
+            raise ValueError("Fecha de nacimiento inválida")
         return v

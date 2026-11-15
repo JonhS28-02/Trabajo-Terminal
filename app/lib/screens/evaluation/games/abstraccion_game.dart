@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/moca_result.dart';
+import '../../../data/moca_variants.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class AbstraccionGame extends StatefulWidget {
-  const AbstraccionGame({super.key});
+  const AbstraccionGame({super.key, required this.variant});
+  final AbstraccionVariant variant;
 
   @override
   State<AbstraccionGame> createState() => _AbstraccionGameState();
 }
 
 class _AbstraccionGameState extends State<AbstraccionGame> {
-  static const _pares = [
-    ['Naranja', 'Plátano'],
-    ['Tren', 'Bicicleta'],
-  ];
-
-  static const _keywords = <List<String>>[
-    ['fruta', 'frutas', 'alimento', 'alimentos', 'comida'],
-    ['transporte', 'vehiculo', 'vehículo', 'vehiculos', 'vehículos',
-     'medio', 'medios'],
-  ];
+  late final List<List<String>> _pares = widget.variant.pares;
+  late final List<List<String>> _keywords = widget.variant.keywords;
 
   final _ctrls = List.generate(2, (_) => TextEditingController());
   final _checked = [false, false];
@@ -77,7 +72,7 @@ class _AbstraccionGameState extends State<AbstraccionGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Abstracción', style: AppText.title.copyWith(fontSize: 20)),
@@ -92,7 +87,7 @@ class _AbstraccionGameState extends State<AbstraccionGame> {
             ],
             const SizedBox(height: 32),
             PrimaryButton(label: 'FINALIZAR SECCIÓN', onPressed: _finish),
-          ],
+          ]),
         ),
       ),
     );

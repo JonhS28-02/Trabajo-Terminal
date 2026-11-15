@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/moca_result.dart';
+import '../../../data/moca_variants.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class IdentificacionGame extends StatefulWidget {
-  const IdentificacionGame({super.key});
+  const IdentificacionGame({super.key, required this.variant});
+  final AnimalVariant variant;
 
   @override
   State<IdentificacionGame> createState() => _IdentificacionGameState();
 }
 
 class _IdentificacionGameState extends State<IdentificacionGame> {
-  static const _animals = ['León', 'Rinoceronte', 'Camello'];
-  static const _accepted = <List<String>>[
-    ['león', 'leon'],
-    ['rinoceronte', 'rino'],
-    ['camello', 'dromedario'],
-  ];
+  late final List<String> _animals = widget.variant.animals;
+  late final List<List<String>> _accepted = widget.variant.accepted;
 
   final _ctrls = List.generate(3, (_) => TextEditingController());
   final _checked = [false, false, false];
@@ -74,7 +73,7 @@ class _IdentificacionGameState extends State<IdentificacionGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Identificación', style: AppText.title.copyWith(fontSize: 20)),
@@ -90,7 +89,7 @@ class _IdentificacionGameState extends State<IdentificacionGame> {
             ],
             const SizedBox(height: 32),
             PrimaryButton(label: 'FINALIZAR SECCIÓN', onPressed: _finish),
-          ],
+          ]),
         ),
       ),
     );

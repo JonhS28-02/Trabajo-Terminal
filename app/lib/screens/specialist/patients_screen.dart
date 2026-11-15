@@ -4,7 +4,10 @@ import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/entrance.dart';
 import 'add_patient_screen.dart';
+import 'analisis_clinico_screen.dart';
+import 'evaluaciones_screen.dart';
 import 'expediente_screen.dart';
 import 'moca_code_screen.dart';
 
@@ -61,13 +64,20 @@ class _PatientsScreenState extends State<PatientsScreen> {
       return;
     }
 
-    final action = await showModalBottomSheet<String>(
+    final action = await showGeneralDialog<String>(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => _PatientActions(patient: patient),
+      barrierDismissible: true,
+      barrierLabel: 'Cerrar',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 260),
+      pageBuilder: (ctx, _, __) => _PatientActionsDialog(patient: patient),
+      transitionBuilder: (_, anim, __, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(scale: Tween(begin: 0.92, end: 1.0).animate(curved), child: child),
+        );
+      },
     );
     if (action == null || !mounted) return;
 
@@ -78,6 +88,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
     } else if (action == 'moca') {
       await Navigator.of(context).push(
         fadeRoute(MocaCodeScreen(patient: patient)),
+      );
+    } else if (action == 'evaluaciones') {
+      await Navigator.of(context).push(
+        fadeRoute(EvaluacionesScreen(patient: patient)),
+      );
+    } else if (action == 'analisis') {
+      await Navigator.of(context).push(
+        fadeRoute(AnalisisClinicoScreen(patient: patient)),
       );
     }
     _load();
@@ -128,9 +146,12 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         );
                       }
                       final p = _patients[i - 1];
-                      return _PatientCard(
-                        patient: p,
-                        onTap: () => _goToPatient(p),
+                      return Entrance(
+                        index: i,
+                        child: _PatientCard(
+                          patient: p,
+                          onTap: () => _goToPatient(p),
+                        ),
                       );
                     },
                   ),
@@ -254,48 +275,92 @@ class _PatientCard extends StatelessWidget {
   }
 }
 
-class _PatientActions extends StatelessWidget {
-  const _PatientActions({required this.patient});
+class _PatientActionsDialog extends StatelessWidget {
+  const _PatientActionsDialog({required this.patient});
   final Map<String, dynamic> patient;
 
   @override
   Widget build(BuildContext context) {
     final nombre = patient['nombre'] as String? ?? '';
     final apellido = patient['apellido_paterno'] as String? ?? '';
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
+    final codigo = patient['codigo_paciente'] as String? ?? '';
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 28),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.purple.withAlpha(40)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppColors.gradient,
+                ),
+                child: Center(
+                  child: Text(
+                    nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+                    style: AppText.title.copyWith(fontSize: 24),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              '$nombre $apellido',
-              style: AppText.label.copyWith(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            _ActionTile(
-              icon: Icons.assignment,
-              label: 'Ver expediente',
-              subtitle: 'Consultar o editar expediente clínico',
-              onTap: () => Navigator.pop(context, 'expediente'),
-            ),
-            const SizedBox(height: 10),
-            _ActionTile(
-              icon: Icons.psychology,
-              label: 'Evaluación MoCA',
-              subtitle: 'Generar código para iniciar evaluación',
-              onTap: () => Navigator.pop(context, 'moca'),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Text(
+                '$nombre $apellido',
+                style: AppText.label.copyWith(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'ID: $codigo',
+                style: AppText.subtitle.copyWith(color: AppColors.hint, fontSize: 11),
+              ),
+              const SizedBox(height: 20),
+              _ActionTile(
+                icon: Icons.psychology,
+                label: 'Iniciar prueba MoCA',
+                subtitle: 'Generar código para evaluación',
+                onTap: () => Navigator.pop(context, 'moca'),
+              ),
+              const SizedBox(height: 8),
+              _ActionTile(
+                icon: Icons.insights,
+                label: 'Análisis clínico',
+                subtitle: 'Estimación del modelo, seguimiento y notas',
+                onTap: () => Navigator.pop(context, 'analisis'),
+              ),
+              const SizedBox(height: 8),
+              _ActionTile(
+                icon: Icons.history,
+                label: 'Ver evaluaciones',
+                subtitle: 'Puntajes y gráficas de cada MoCA',
+                onTap: () => Navigator.pop(context, 'evaluaciones'),
+              ),
+              const SizedBox(height: 8),
+              _ActionTile(
+                icon: Icons.assignment,
+                label: 'Ver expediente',
+                subtitle: 'Consultar o editar antecedentes',
+                onTap: () => Navigator.pop(context, 'expediente'),
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Text(
+                  'Cerrar',
+                  style: AppText.subtitle.copyWith(color: AppColors.hint, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

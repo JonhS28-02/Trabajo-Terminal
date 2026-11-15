@@ -1,0 +1,171 @@
+{
+ "descripcion": "Casos inventados (no son pacientes) para comprobar que el modelo v01 sigue dando las mismas salidas.",
+ "casos": [
+  {
+   "entrada": {
+    "D_visuoejecutiva": 5,
+    "D_denominacion": 3,
+    "D_atencion": 6,
+    "D_lenguaje": 3,
+    "D_abstraccion": 2,
+    "D_recuerdo_diferido": 5,
+    "D_orientacion": 6,
+    "EDAD": 68,
+    "SEXO": "F",
+    "ESC_ANIOS": 16
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.8581629661259146,
+     "DCL": 0.09581878390931946,
+     "Alzheimer": 0.0016763877154628698,
+     "Vascular": 0.0443418622493031
+    },
+    "clase_predicha": "Normal",
+    "prob_progresion": 0.009508908889271708
+   }
+  },
+  {
+   "entrada": {
+    "D_visuoejecutiva": 4,
+    "D_denominacion": 3,
+    "D_atencion": 5,
+    "D_lenguaje": 2,
+    "D_abstraccion": 2,
+    "D_recuerdo_diferido": 1,
+    "D_orientacion": 6,
+    "EDAD": 71,
+    "SEXO": "F",
+    "ESC_ANIOS": 9
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.2900632793885955,
+     "DCL": 0.41103371350780366,
+     "Alzheimer": 0.047952099546947055,
+     "Vascular": 0.25095090755665383
+    },
+    "clase_predicha": "DCL",
+    "prob_progresion": 0.04651903780184141
+   }
+  },
+  {
+   "entrada": {
+    "D_visuoejecutiva": 2,
+    "D_denominacion": 2,
+    "D_atencion": 3,
+    "D_lenguaje": 1,
+    "D_abstraccion": 1,
+    "D_recuerdo_diferido": 0,
+    "D_orientacion": 2,
+    "EDAD": 80,
+    "SEXO": "M",
+    "ESC_ANIOS": 6
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.0002009942507471366,
+     "DCL": 0.0500252035651974,
+     "Alzheimer": 0.7792851998025258,
+     "Vascular": 0.17048860238152982
+    },
+    "clase_predicha": "Alzheimer",
+    "prob_progresion": 0.6267512804587242
+   }
+  },
+  {
+   "entrada": {
+    "D_visuoejecutiva": 3,
+    "D_denominacion": 3,
+    "D_atencion": 4,
+    "D_lenguaje": 2,
+    "D_abstraccion": 1,
+    "D_recuerdo_diferido": 2,
+    "D_orientacion": 5,
+    "EDAD": 75,
+    "SEXO": "M",
+    "ESC_ANIOS": null
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.05042407478667345,
+     "DCL": 0.35033046968014503,
+     "Alzheimer": 0.18840423038442797,
+     "Vascular": 0.41084122514875354
+    },
+    "clase_predicha": "Vascular",
+    "prob_progresion": 0.12551911231551385
+   }
+  },
+  {
+   "entrada": {
+    "D_visuoejecutiva": 4,
+    "D_denominacion": 3,
+    "D_atencion": 5,
+    "D_lenguaje": 2,
+    "D_abstraccion": 2,
+    "D_recuerdo_diferido": 1,
+    "D_orientacion": 6,
+    "EDAD": 71,
+    "SEXO": "F",
+    "ESC_ANIOS": 9,
+    "HIPERTENSION": 1,
+    "DIABETES": 0,
+    "COLESTEROL_LIPIDOS": 0,
+    "ACV_TIA": 0,
+    "TABACO": 1,
+    "ALCOHOL_ABUSO": 0,
+    "DROGAS": 0,
+    "CAT_PSIQ": 0,
+    "CAT_NEURO": 0,
+    "CAT_CARDIO": 0,
+    "CAT_ENDO": 0
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.42855482266484707,
+     "DCL": 0.38149161203747917,
+     "Alzheimer": 0.043218792849524436,
+     "Vascular": 0.14673477244814925
+    },
+    "clase_predicha": "Normal",
+    "prob_progresion": 0.04651903780184141
+   }
+  },
+  {
+   "entrada": {
+    "D_visuoejecutiva": 3,
+    "D_denominacion": 2,
+    "D_atencion": 3,
+    "D_lenguaje": 2,
+    "D_abstraccion": 1,
+    "D_recuerdo_diferido": 2,
+    "D_orientacion": 4,
+    "EDAD": 78,
+    "SEXO": "M",
+    "ESC_ANIOS": 12,
+    "HIPERTENSION": 1,
+    "DIABETES": 1,
+    "COLESTEROL_LIPIDOS": 1,
+    "ACV_TIA": 1,
+    "TABACO": 0,
+    "ALCOHOL_ABUSO": 0,
+    "DROGAS": 0,
+    "CAT_PSIQ": 1,
+    "CAT_NEURO": 0,
+    "CAT_CARDIO": 1,
+    "CAT_ENDO": 1
+   },
+   "esperado": {
+    "probabilidades": {
+     "Normal": 0.0028794670361699448,
+     "DCL": 0.09443882173900711,
+     "Alzheimer": 0.11238204783106813,
+     "Vascular": 0.7902996633937549
+    },
+    "clase_predicha": "Vascular",
+    "prob_progresion": 0.1917768781949905
+   }
+  }
+ ]
+}

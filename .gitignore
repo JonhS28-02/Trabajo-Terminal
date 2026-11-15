@@ -1,2 +1,6 @@
 Datasets/
 .DS_Store
+
+# Secretos y estado del despliegue
+infra/azure/.secretos.env
+infra/azure/.ultima_imagen

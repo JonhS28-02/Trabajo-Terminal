@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/moca_result.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class OrientacionGame extends StatefulWidget {
   const OrientacionGame({super.key});
@@ -98,7 +99,7 @@ class _OrientacionGameState extends State<OrientacionGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Orientación', style: AppText.title.copyWith(fontSize: 20)),
@@ -119,7 +120,7 @@ class _OrientacionGameState extends State<OrientacionGame> {
                 TextInputType.text),
             const SizedBox(height: 24),
             PrimaryButton(label: 'FINALIZAR SECCIÓN', onPressed: _finish),
-          ],
+          ]),
         ),
       ),
     );

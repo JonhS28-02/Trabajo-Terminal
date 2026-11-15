@@ -8,6 +8,7 @@ import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import 'moca_instructions_screen.dart';
+import '../../widgets/entrance.dart';
 
 class MocaCodeScreen extends StatefulWidget {
   const MocaCodeScreen({super.key, required this.patient});
@@ -108,7 +109,7 @@ class _MocaCodeScreenState extends State<MocaCodeScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 24),
             Text('Evaluación MoCA',
@@ -205,7 +206,7 @@ class _MocaCodeScreenState extends State<MocaCodeScreen> {
                 onPressed: _verInstrucciones,
               ),
             ],
-          ],
+          ]),
         ),
       ),
     );

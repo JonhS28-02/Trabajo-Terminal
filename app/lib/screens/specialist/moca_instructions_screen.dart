@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/moca_result.dart';
 import '../../data/moca_sections.dart';
+import '../../data/moca_variants.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../evaluation/example_screen.dart';
@@ -14,6 +15,7 @@ import '../evaluation/games/orientacion_game.dart';
 import '../evaluation/games/recuerdo_game.dart';
 import '../evaluation/games/visuoespacial_game.dart';
 import '../evaluation/moca_summary_screen.dart';
+import '../../widgets/entrance.dart';
 
 enum _Phase { instruction, example, game }
 
@@ -41,6 +43,7 @@ class _MocaInstructionsScreenState extends State<MocaInstructionsScreen> {
   int _current = 0;
   _Phase _phase = _Phase.instruction;
   final List<AreaResult> _results = [];
+  late final MocaVariants _variants = MocaVariants();
 
   MocaSection get _section => widget.sections[_current];
   bool get _isLast => _current == widget.sections.length - 1;
@@ -55,6 +58,7 @@ class _MocaInstructionsScreenState extends State<MocaInstructionsScreen> {
           slideUpRoute(ExampleScreen(
             idArea: _section.idArea,
             nombre: _section.nombre,
+            variants: _variants,
           )),
         ).then((_) {
           if (mounted) setState(() => _phase = _Phase.game);
@@ -95,12 +99,12 @@ class _MocaInstructionsScreenState extends State<MocaInstructionsScreen> {
   Widget _gameWidget() {
     switch (_section.idArea) {
       case 1: return const VisuoespacialGame();
-      case 2: return const IdentificacionGame();
-      case 3: return const MemoriaRegistroGame();
-      case 4: return const AtencionGame();
-      case 5: return const LenguajeGame();
-      case 6: return const AbstraccionGame();
-      case 7: return const RecuerdoGame();
+      case 2: return IdentificacionGame(variant: _variants.gameAnimals);
+      case 3: return MemoriaRegistroGame(palabras: _variants.gameMemoria);
+      case 4: return AtencionGame(variant: _variants.gameAtencion);
+      case 5: return LenguajeGame(variant: _variants.gameLenguaje);
+      case 6: return AbstraccionGame(variant: _variants.gameAbstraccion);
+      case 7: return RecuerdoGame(palabras: _variants.gameMemoria);
       case 8: return const OrientacionGame();
       default: return const SizedBox();
     }
@@ -130,7 +134,7 @@ class _MocaInstructionsScreenState extends State<MocaInstructionsScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 20),
 
@@ -284,7 +288,7 @@ class _MocaInstructionsScreenState extends State<MocaInstructionsScreen> {
               label: _buttonLabel,
               onPressed: _next,
             ),
-          ],
+          ]),
         ),
       ),
     );

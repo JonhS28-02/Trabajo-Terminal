@@ -3,16 +3,18 @@ import 'package:flutter/material.dart';
 import '../../../data/moca_result.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class RecuerdoGame extends StatefulWidget {
-  const RecuerdoGame({super.key});
+  const RecuerdoGame({super.key, required this.palabras});
+  final List<String> palabras;
 
   @override
   State<RecuerdoGame> createState() => _RecuerdoGameState();
 }
 
 class _RecuerdoGameState extends State<RecuerdoGame> {
-  static const _palabras = ['rostro', 'seda', 'iglesia', 'clavel', 'rojo'];
+  late final List<String> _palabras = widget.palabras;
   final _ctrls = List.generate(5, (_) => TextEditingController());
   bool _checked = false;
   final _correct = List.filled(5, false);
@@ -61,7 +63,7 @@ class _RecuerdoGameState extends State<RecuerdoGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Recuerdo diferido',
@@ -96,7 +98,7 @@ class _RecuerdoGameState extends State<RecuerdoGame> {
             const SizedBox(height: 24),
             PrimaryButton(
                 label: 'FINALIZAR SECCIÓN', onPressed: _finish),
-          ],
+          ]),
         ),
       ),
     );

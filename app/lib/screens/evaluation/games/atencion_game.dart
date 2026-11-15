@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../data/moca_result.dart';
+import '../../../data/moca_variants.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 enum _DigitPhase { showing, hiding, input }
 
 class AtencionGame extends StatefulWidget {
-  const AtencionGame({super.key});
+  const AtencionGame({super.key, required this.variant});
+  final AtencionVariant variant;
 
   @override
   State<AtencionGame> createState() => _AtencionGameState();
@@ -18,23 +21,20 @@ class AtencionGame extends StatefulWidget {
 class _AtencionGameState extends State<AtencionGame> {
   int _subTask = 0;
 
-  // ── Dígitos adelante: 2-1-8-5-4 ──
+  // ── Dígitos adelante ──
   final _adelanteCtrl = TextEditingController();
   int _adelanteScore = -1;
   _DigitPhase _adelantePhase = _DigitPhase.showing;
   Timer? _adelanteTimer;
 
-  // ── Dígitos atrás: 7-4-2 → 2-4-7 ──
+  // ── Dígitos atrás ──
   final _atrasCtrl = TextEditingController();
   int _atrasScore = -1;
   _DigitPhase _atrasPhase = _DigitPhase.showing;
   Timer? _atrasTimer;
 
   // ── Vigilancia ──
-  static const _vigLetras = [
-    'F','B','A','C','M','N','A','A','J','K',
-    'L','B','A','F','A','K','D','E','A','A','J',
-  ];
+  late final List<String> _vigLetras = widget.variant.vigLetras;
   int _vigIdx = 0;
   bool _vigRunning = false;
   bool _vigDone = false;
@@ -77,7 +77,7 @@ class _AtencionGameState extends State<AtencionGame> {
 
   void _checkAdelante() {
     final input = _adelanteCtrl.text.replaceAll(RegExp(r'\s+'), '');
-    setState(() => _adelanteScore = input == '21854' ? 1 : 0);
+    setState(() => _adelanteScore = input == widget.variant.adelante ? 1 : 0);
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) _nextSub();
     });
@@ -85,7 +85,7 @@ class _AtencionGameState extends State<AtencionGame> {
 
   void _checkAtras() {
     final input = _atrasCtrl.text.replaceAll(RegExp(r'\s+'), '');
-    setState(() => _atrasScore = input == '247' ? 1 : 0);
+    setState(() => _atrasScore = input == widget.variant.atrasRespuesta ? 1 : 0);
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) _nextSub();
     });
@@ -183,7 +183,7 @@ class _AtencionGameState extends State<AtencionGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Atención', style: AppText.title.copyWith(fontSize: 20)),
@@ -195,7 +195,7 @@ class _AtencionGameState extends State<AtencionGame> {
             if (_subTask == 1) _buildAtras(),
             if (_subTask == 2) _buildVigilancia(),
             if (_subTask == 3) _buildSerial7(),
-          ],
+          ]),
         ),
       ),
     );
@@ -217,7 +217,7 @@ class _AtencionGameState extends State<AtencionGame> {
                 .copyWith(color: Colors.white70, fontSize: 13)),
         const SizedBox(height: 16),
         if (_adelantePhase == _DigitPhase.showing) ...[
-          _numBox('2   1   8   5   4'),
+          _numBox(widget.variant.adelante.split('').join('   ')),
           const SizedBox(height: 16),
           _countdownHint('Memoriza...'),
         ] else if (_adelantePhase == _DigitPhase.hiding) ...[
@@ -226,7 +226,7 @@ class _AtencionGameState extends State<AtencionGame> {
           _countdownHint('Preparando...'),
         ] else ...[
           AppField(
-            hint: 'Escribe los dígitos (ej: 21854)',
+            hint: 'Escribe los dígitos',
             keyboardType: TextInputType.number,
             controller: _adelanteCtrl,
             onSubmitted: (_) { if (_adelanteScore == -1) _checkAdelante(); },
@@ -251,7 +251,7 @@ class _AtencionGameState extends State<AtencionGame> {
                 .copyWith(color: Colors.white70, fontSize: 13)),
         const SizedBox(height: 16),
         if (_atrasPhase == _DigitPhase.showing) ...[
-          _numBox('7   4   2'),
+          _numBox(widget.variant.atras.split('').join('   ')),
           const SizedBox(height: 16),
           _countdownHint('Memoriza...'),
         ] else if (_atrasPhase == _DigitPhase.hiding) ...[

@@ -4,6 +4,7 @@ import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../evaluation/enter_code_screen.dart';
+import '../../widgets/entrance.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, this.role = ''});
@@ -22,7 +23,7 @@ class HomeScreen extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        children: staggered([
           FutureBuilder<String?>(
             future: SessionService.getNombre(),
             builder: (context, snap) {
@@ -78,9 +79,13 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Bienvenido a Brain Test. Tu perfil incluye un código QR '
-                  'único que tu especialista puede escanear para vincularte '
-                  'a su lista de pacientes.',
+                  role == 'especialista'
+                      ? 'Aplica la prueba MoCA a tus pacientes, revisa la '
+                          'estimación del modelo en cada evaluación y registra '
+                          'tus notas y el plan de seguimiento.'
+                      : 'Bienvenido a Brain Test. Tu perfil incluye un código QR '
+                          'único que tu especialista puede escanear para vincularte '
+                          'a su lista de pacientes.',
                   style: AppText.subtitle.copyWith(
                     color: Colors.white70,
                     fontSize: 13,
@@ -141,8 +146,28 @@ class HomeScreen extends StatelessWidget {
           ],
           const SizedBox(height: 32),
 
-          Text('Información', style: AppText.title.copyWith(fontSize: 18)),
+          Text(role == 'especialista' ? 'Cómo trabajar con un paciente' : 'Información',
+              style: AppText.title.copyWith(fontSize: 18)),
           const SizedBox(height: 16),
+          if (role == 'especialista') ...const [
+            _InfoTile(
+              icon: Icons.person_add_alt_1,
+              title: '1. Vincula y abre su expediente',
+              desc: 'En Pacientes, escanea su QR y registra sus antecedentes. El modelo los toma en cuenta.',
+            ),
+            SizedBox(height: 12),
+            _InfoTile(
+              icon: Icons.psychology,
+              title: '2. Aplica la MoCA',
+              desc: 'Genera el código de supervisión para que el paciente inicie la prueba.',
+            ),
+            SizedBox(height: 12),
+            _InfoTile(
+              icon: Icons.insights,
+              title: '3. Revisa el análisis clínico',
+              desc: 'Estimación del modelo, cambios entre evaluaciones y tus notas con el plan de seguimiento.',
+            ),
+          ] else ...[
           _InfoTile(
             icon: Icons.qr_code_2,
             title: 'Tu código QR',
@@ -161,7 +186,8 @@ class HomeScreen extends StatelessWidget {
             desc: 'Tu información está protegida y solo será visible para '
                 'los especialistas que autorices.',
           ),
-        ],
+          ],
+        ]),
       ),
     );
   }

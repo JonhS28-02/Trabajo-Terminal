@@ -37,7 +37,23 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _index, children: _pages),
+      body: IndexedStack(
+        index: _index,
+        children: [
+          for (int i = 0; i < _pages.length; i++)
+            AnimatedOpacity(
+              opacity: i == _index ? 1 : 0,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOut,
+              child: AnimatedSlide(
+                offset: i == _index ? Offset.zero : const Offset(0, 0.03),
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                child: _pages[i],
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: _LiquidGlassNavBar(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),

@@ -3,16 +3,22 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../data/moca_variants.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/entrance.dart';
 
-/// Animated live simulation that auto-completes the game so the patient
-/// can watch how it works before doing it for real.
 class ExampleScreen extends StatefulWidget {
-  const ExampleScreen({super.key, required this.idArea, required this.nombre});
+  const ExampleScreen({
+    super.key,
+    required this.idArea,
+    required this.nombre,
+    required this.variants,
+  });
 
   final int idArea;
   final String nombre;
+  final MocaVariants variants;
 
   @override
   State<ExampleScreen> createState() => _ExampleScreenState();
@@ -34,7 +40,7 @@ class _ExampleScreenState extends State<ExampleScreen>
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 12),
             // Banner
@@ -80,32 +86,32 @@ class _ExampleScreenState extends State<ExampleScreen>
                 label: 'ENTENDIDO, CONTINUAR',
                 onPressed: () => Navigator.of(context).pop(),
               ),
-          ],
+          ]),
         ),
       ),
     );
   }
 
   Widget _buildSim() {
+    final done = () => setState(() => _finished = true);
+    final v = widget.variants;
     switch (widget.idArea) {
       case 1:
-        return _TrailSim(onDone: () => setState(() => _finished = true));
+        return _TrailSim(onDone: done);
       case 2:
-        return _IdentSim(onDone: () => setState(() => _finished = true));
+        return _IdentSim(onDone: done, animals: v.exampleAnimals.animals);
       case 3:
-        return _MemoriaSim(onDone: () => setState(() => _finished = true));
+        return _MemoriaSim(onDone: done, words: v.exampleMemoria);
       case 4:
-        return _AtencionSim(onDone: () => setState(() => _finished = true));
+        return _AtencionSim(onDone: done, variant: v.exampleAtencion);
       case 5:
-        return _LenguajeSim(onDone: () => setState(() => _finished = true));
+        return _LenguajeSim(onDone: done, variant: v.exampleLenguaje);
       case 6:
-        return _AbstraccionSim(
-            onDone: () => setState(() => _finished = true));
+        return _AbstraccionSim(onDone: done, variant: v.exampleAbstraccion);
       case 7:
-        return _RecuerdoSim(onDone: () => setState(() => _finished = true));
+        return _RecuerdoSim(onDone: done, words: v.exampleMemoria);
       case 8:
-        return _OrientacionSim(
-            onDone: () => setState(() => _finished = true));
+        return _OrientacionSim(onDone: done);
       default:
         return const SizedBox();
     }
@@ -265,14 +271,15 @@ class _SimTrailPainter extends CustomPainter {
 // ══════════════════════════════════════════════════════════
 
 class _IdentSim extends StatefulWidget {
-  const _IdentSim({required this.onDone});
+  const _IdentSim({required this.onDone, required this.animals});
   final VoidCallback onDone;
+  final List<String> animals;
   @override
   State<_IdentSim> createState() => _IdentSimState();
 }
 
 class _IdentSimState extends State<_IdentSim> {
-  static const _animals = ['León', 'Rinoceronte', 'Camello'];
+  late final List<String> _animals = widget.animals;
   static const _icons = [Icons.pets, Icons.pest_control, Icons.emoji_nature];
   int _step = 0;
   String _typing = '';
@@ -379,14 +386,15 @@ class _IdentSimState extends State<_IdentSim> {
 // ══════════════════════════════════════════════════════════
 
 class _MemoriaSim extends StatefulWidget {
-  const _MemoriaSim({required this.onDone});
+  const _MemoriaSim({required this.onDone, required this.words});
   final VoidCallback onDone;
+  final List<String> words;
   @override
   State<_MemoriaSim> createState() => _MemoriaSimState();
 }
 
 class _MemoriaSimState extends State<_MemoriaSim> {
-  static const _words = ['rostro', 'seda', 'iglesia', 'clavel', 'rojo'];
+  late final List<String> _words = widget.words;
   int _phase = 0; // 0=showing, 1=hidden/typing, 2=done
   int _typed = 0;
   Timer? _t;
@@ -498,23 +506,22 @@ class _MemoriaSimState extends State<_MemoriaSim> {
 // ══════════════════════════════════════════════════════════
 
 class _AtencionSim extends StatefulWidget {
-  const _AtencionSim({required this.onDone});
+  const _AtencionSim({required this.onDone, required this.variant});
   final VoidCallback onDone;
+  final AtencionVariant variant;
   @override
   State<_AtencionSim> createState() => _AtencionSimState();
 }
 
 class _AtencionSimState extends State<_AtencionSim> {
-  int _sub = 0; // 0=adelante, 1=atrás, 2=vigilancia, 3=serial7
+  int _sub = 0;
   String _typed = '';
   Timer? _t;
 
-  // Vigilancia
-  static const _vigLetters = ['F', 'B', 'A', 'C', 'M', 'A', 'K'];
+  late final List<String> _vigLetters = widget.variant.vigLetras.take(7).toList();
   int _vigIdx = -1;
   bool _vigTapped = false;
 
-  // Serial 7
   int _s7Done = 0;
   static const _s7Answers = ['93', '86', '79', '72', '65'];
 
@@ -527,10 +534,10 @@ class _AtencionSimState extends State<_AtencionSim> {
   void _runSub() {
     switch (_sub) {
       case 0:
-        _typeSequence('21854', () => _nextSub());
+        _typeSequence(widget.variant.adelante, () => _nextSub());
         break;
       case 1:
-        _typeSequence('247', () => _nextSub());
+        _typeSequence(widget.variant.atrasRespuesta, () => _nextSub());
         break;
       case 2:
         _runVig();
@@ -624,9 +631,9 @@ class _AtencionSimState extends State<_AtencionSim> {
   String get _subLabel {
     switch (_sub) {
       case 0:
-        return 'Dígitos hacia adelante: 2-1-8-5-4';
+        return 'Dígitos hacia adelante: ${widget.variant.adelante.split('').join('-')}';
       case 1:
-        return 'Dígitos hacia atrás: 7-4-2 → 2-4-7';
+        return 'Dígitos hacia atrás: ${widget.variant.atras.split('').join('-')} → ${widget.variant.atrasRespuesta.split('').join('-')}';
       case 2:
         return 'Vigilancia — presionar GOLPE en la letra A';
       case 3:
@@ -721,30 +728,21 @@ class _AtencionSimState extends State<_AtencionSim> {
 // ══════════════════════════════════════════════════════════
 
 class _LenguajeSim extends StatefulWidget {
-  const _LenguajeSim({required this.onDone});
+  const _LenguajeSim({required this.onDone, required this.variant});
   final VoidCallback onDone;
+  final LenguajeVariant variant;
   @override
   State<_LenguajeSim> createState() => _LenguajeSimState();
 }
 
 class _LenguajeSimState extends State<_LenguajeSim> {
-  int _phase = 0; // 0=show sentence, 1=typing sentence, 2=fluency, 3=done
-  String _sentence =
-      'El gato se escondió bajo el sofá cuando los perros entraron en la sala.';
+  int _phase = 0;
+  late final String _sentence = widget.variant.oraciones[0];
   String _typed = '';
   int _fWords = 0;
   static const _fList = [
-    'fresa',
-    'fútbol',
-    'familia',
-    'flor',
-    'fuego',
-    'fácil',
-    'forma',
-    'fuerza',
-    'fiesta',
-    'frío',
-    'faro',
+    'fresa', 'fútbol', 'familia', 'flor', 'fuego',
+    'fácil', 'forma', 'fuerza', 'fiesta', 'frío', 'faro',
   ];
   Timer? _t;
 
@@ -868,16 +866,17 @@ class _LenguajeSimState extends State<_LenguajeSim> {
 // ══════════════════════════════════════════════════════════
 
 class _AbstraccionSim extends StatefulWidget {
-  const _AbstraccionSim({required this.onDone});
+  const _AbstraccionSim({required this.onDone, required this.variant});
   final VoidCallback onDone;
+  final AbstraccionVariant variant;
   @override
   State<_AbstraccionSim> createState() => _AbstraccionSimState();
 }
 
 class _AbstraccionSimState extends State<_AbstraccionSim> {
-  static const _pairs = [
-    ['Naranja', 'Plátano', 'frutas'],
-    ['Tren', 'Bicicleta', 'transporte'],
+  late final List<List<String>> _pairs = [
+    [...widget.variant.pares[0], widget.variant.keywords[0][0]],
+    [...widget.variant.pares[1], widget.variant.keywords[1][0]],
   ];
   int _done = 0;
   String _typing = '';
@@ -970,14 +969,15 @@ class _AbstraccionSimState extends State<_AbstraccionSim> {
 // ══════════════════════════════════════════════════════════
 
 class _RecuerdoSim extends StatefulWidget {
-  const _RecuerdoSim({required this.onDone});
+  const _RecuerdoSim({required this.onDone, required this.words});
   final VoidCallback onDone;
+  final List<String> words;
   @override
   State<_RecuerdoSim> createState() => _RecuerdoSimState();
 }
 
 class _RecuerdoSimState extends State<_RecuerdoSim> {
-  static const _words = ['rostro', 'seda', 'iglesia', 'clavel', 'rojo'];
+  late final List<String> _words = widget.words;
   int _done = 0;
   Timer? _t;
 

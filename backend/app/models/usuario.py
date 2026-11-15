@@ -27,6 +27,8 @@ class Credencial(Base):
     id_usuario = Column(Integer, ForeignKey("usuario.id_usuario", ondelete="CASCADE"), nullable=False)
     intentos_fallidos = Column(SmallInteger, nullable=False, default=0)
     bloqueado_hasta = Column(TIMESTAMP)
+    codigo_recuperacion = Column(String(6))
+    codigo_recuperacion_expira = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
 
     usuario_rel = relationship("Usuario", back_populates="credencial")

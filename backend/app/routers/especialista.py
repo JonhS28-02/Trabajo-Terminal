@@ -21,6 +21,8 @@ from ..models.paciente import (
     ExpedienteClinico,
     Paciente,
 )
+from ..models.evaluacion import Moca
+from ..models.seguimiento import NotaClinica
 from ..models.usuario import Usuario
 from ..schemas.especialista import (
     AntecedenteFamiliarOut,
@@ -29,6 +31,8 @@ from ..schemas.especialista import (
     EscolaridadItem,
     ExpedienteRequest,
     ExpedienteResponse,
+    NotaClinicaRequest,
+    NotaClinicaResponse,
     PacienteResumen,
     VincularPacienteRequest,
     VincularResponse,
@@ -195,6 +199,52 @@ def actualizar_expediente(
     db.commit()
     db.refresh(expediente)
     return _build_expediente_response(db, expediente, id_paciente)
+
+
+@router.get("/pacientes/{id_paciente}/notas", response_model=list[NotaClinicaResponse])
+def listar_notas(
+    id_paciente: int,
+    esp: Especialista = Depends(_require_specialist),
+    db: Session = Depends(get_db),
+):
+    _verify_link(db, esp.id_especialista, id_paciente)
+    return (
+        db.query(NotaClinica)
+        .filter(NotaClinica.id_paciente == id_paciente, NotaClinica.id_especialista == esp.id_especialista)
+        .order_by(NotaClinica.created_at.desc())
+        .all()
+    )
+
+
+@router.post(
+    "/pacientes/{id_paciente}/notas",
+    response_model=NotaClinicaResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def crear_nota(
+    id_paciente: int,
+    body: NotaClinicaRequest,
+    esp: Especialista = Depends(_require_specialist),
+    db: Session = Depends(get_db),
+):
+    _verify_link(db, esp.id_especialista, id_paciente)
+    if body.id_moca is not None:
+        moca = db.query(Moca).filter(Moca.id_moca == body.id_moca, Moca.id_paciente == id_paciente).first()
+        if not moca:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La evaluación no pertenece a este paciente")
+    nota = NotaClinica(
+        id_paciente=id_paciente,
+        id_especialista=esp.id_especialista,
+        id_moca=body.id_moca,
+        impresion_diagnostica=body.impresion_diagnostica,
+        nota=body.nota,
+        plan=body.plan,
+        fecha_seguimiento=body.fecha_seguimiento,
+    )
+    db.add(nota)
+    db.commit()
+    db.refresh(nota)
+    return nota
 
 
 # ── Catálogos (público para el form del frontend) ──

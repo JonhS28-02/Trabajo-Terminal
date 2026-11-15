@@ -5,6 +5,7 @@ import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../main_shell.dart';
+import '../../widgets/entrance.dart';
 
 class CredentialsScreen extends StatefulWidget {
   const CredentialsScreen({super.key, required this.userData});
@@ -156,7 +157,7 @@ class _CredentialsScreenState extends State<CredentialsScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             Stack(
               children: [
                 const HeaderImage(asset: 'assets/images/credentials.jpg'),
@@ -214,7 +215,7 @@ class _CredentialsScreenState extends State<CredentialsScreen> {
                 ],
               ),
             ),
-          ],
+          ]),
         ),
       ),
     );

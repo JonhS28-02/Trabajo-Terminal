@@ -1,0 +1,107 @@
+{
+  "nombre": "Modelo de progresión de DCL a Alzheimer (v01)",
+  "decision": "D-169 y D-170",
+  "pregunta": "Dada una visita de un paciente con DCL, ¿la visita siguiente del mismo paciente será clasificada como Alzheimer? (evento A)",
+  "poblacion_entrenamiento": "9134 visitas de DCL con visita siguiente de 4640 pacientes de ADNI y NACC (solo pacientes de entrenamiento)",
+  "modelo": "Regresión logística (C = 1) con variables estandarizadas, sin pesos de clase",
+  "variables": [
+    "D_visuoejecutiva",
+    "D_denominacion",
+    "D_atencion",
+    "D_lenguaje",
+    "D_abstraccion",
+    "D_recuerdo_diferido",
+    "D_orientacion",
+    "EDAD",
+    "SEXO",
+    "ESC_ANIOS"
+  ],
+  "preprocesamiento": {
+    "ESC_ANIOS_faltante": "mediana del entrenamiento (16 años, D-120)",
+    "SEXO": "F = 1, M = 0",
+    "otras_variables_faltantes": "error (no se imputan)"
+  },
+  "mediana_esc": 16.0,
+  "intercepto": -2.399111368456749,
+  "coeficientes": {
+    "D_visuoejecutiva": {
+      "media": 3.800525509086928,
+      "desviacion": 1.091126975766368,
+      "coeficiente": -0.25228634016736207
+    },
+    "D_denominacion": {
+      "media": 2.755419312458945,
+      "desviacion": 0.5035028106800812,
+      "coeficiente": -0.07209900440597827
+    },
+    "D_atencion": {
+      "media": 5.2789577403109265,
+      "desviacion": 1.0263239687024068,
+      "coeficiente": -0.07514349759435521
+    },
+    "D_lenguaje": {
+      "media": 2.1569958397197286,
+      "desviacion": 0.8845601613142121,
+      "coeficiente": -0.04431451633190168
+    },
+    "D_abstraccion": {
+      "media": 1.6178016203196848,
+      "desviacion": 0.6351455247333411,
+      "coeficiente": -0.054172252845052477
+    },
+    "D_recuerdo_diferido": {
+      "media": 1.6410116049923362,
+      "desviacion": 1.6556489103354397,
+      "coeficiente": -0.7892712692067438
+    },
+    "D_orientacion": {
+      "media": 5.633566892927523,
+      "desviacion": 0.712777774450682,
+      "coeficiente": -0.45359765721993206
+    },
+    "EDAD": {
+      "media": 74.12346179111013,
+      "desviacion": 8.37933154141988,
+      "coeficiente": 0.08548908752828585
+    },
+    "SEXO": {
+      "media": 0.47372454565360195,
+      "desviacion": 0.49930912318812126,
+      "coeficiente": 0.08857431706295486
+    },
+    "ESC_ANIOS": {
+      "media": 16.034596014889424,
+      "desviacion": 2.835020361266415,
+      "coeficiente": 0.26984536869501147
+    }
+  },
+  "umbral": {
+    "valor": 0.1601910949087524,
+    "regla": "probabilidad que deja 80% de las visitas sin evento por debajo, con las predicciones fuera de muestra del entrenamiento; marca alto riesgo si la probabilidad es mayor"
+  },
+  "tasa_base_entrenamiento": 0.12119553317276112,
+  "auc_validacion_cruzada": 0.769932698911724,
+  "archivos": {
+    "modelo": {
+      "archivo": "rl_progresion_v01.joblib",
+      "sha256": "ad49c018514127f09202d723d6d837120bcbe0a4fd95c003a0a627c17a8aa66e"
+    },
+    "referencias": {
+      "archivo": "progresion_referencias_v01.joblib",
+      "sha256": "6a3e5c8db09b7ab5abb6d1ee2131fc0e318088c0508711bfe070de7694334593"
+    }
+  },
+  "versiones": {
+    "python": "3.13.16",
+    "scikit-learn": "1.6.1",
+    "numpy": "2.1.3",
+    "pandas": "2.2.3"
+  },
+  "limitaciones": [
+    "Prototipo de investigación, no es una herramienta de diagnóstico.",
+    "Entrenado con ADNI y NACC; sin validación en población mexicana.",
+    "Solo aplica a visitas con DCL; la trayectoria no mejoró el modelo (D-167, D-169).",
+    "El plazo hasta la visita siguiente varía y en NACC se desconoce; la probabilidad no es a un plazo fijo.",
+    "Las probabilidades siguen la tasa de eventos del entrenamiento (12.1%) y por fuente se desvían (ADNI sobreestima)."
+  ]
+}

@@ -99,3 +99,53 @@ class ExpedienteResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
+
+
+CLASES_DIAGNOSTICO = ("Normal", "DCL", "Alzheimer", "Vascular")
+
+
+class NotaClinicaRequest(BaseModel):
+    nota: str
+    plan: Optional[str] = None
+    impresion_diagnostica: Optional[str] = None
+    id_moca: Optional[int] = None
+    fecha_seguimiento: Optional[date] = None
+
+    @field_validator("nota")
+    @classmethod
+    def nota_valida(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("La nota no puede estar vacía")
+        if len(v) > 2000:
+            raise ValueError("Máximo 2000 caracteres")
+        return v
+
+    @field_validator("plan")
+    @classmethod
+    def plan_valido(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if len(v) > 2000:
+            raise ValueError("Máximo 2000 caracteres")
+        return v or None
+
+    @field_validator("impresion_diagnostica")
+    @classmethod
+    def impresion_valida(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in CLASES_DIAGNOSTICO:
+            raise ValueError("Impresión diagnóstica no válida")
+        return v
+
+
+class NotaClinicaResponse(BaseModel):
+    id_nota: int
+    id_moca: Optional[int] = None
+    impresion_diagnostica: Optional[str] = None
+    nota: str
+    plan: Optional[str] = None
+    fecha_seguimiento: Optional[date] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}

@@ -10,15 +10,19 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models.especialista import Especialista, PacienteEspecialista
+from ..models.catalogos import CatEnfermedad, CatEscolaridad, ConsumoTabaco
 from ..models.evaluacion import CodigoSupervision, Moca, ResultadoArea
-from ..models.paciente import ExpedienteClinico, Paciente
+from ..models.paciente import EnfermedadPaciente, ExpedienteClinico, Paciente
+from ..models.seguimiento import NotaClinica
 from ..models.usuario import Usuario
+from ..services import prediccion
 from ..schemas.evaluacion import (
     FinalizarMocaRequest,
     GenerarCodigoRequest,
     GenerarCodigoResponse,
     GuardarResultadosRequest,
     MocaCompleteResponse,
+    MocaHistorialItem,
     MocaResponse,
     ResultadoAreaResponse,
     SesionStatusResponse,
@@ -333,3 +337,162 @@ def obtener_resultados(
         .all()
     )
     return resultados
+
+
+@router.get(
+    "/paciente/{id_paciente}/historial",
+    response_model=List[MocaHistorialItem],
+)
+def historial_moca(
+    id_paciente: int,
+    esp: Especialista = Depends(_require_specialist),
+    db: Session = Depends(get_db),
+):
+    _verify_link(db, esp.id_especialista, id_paciente)
+
+    mocas = (
+        db.query(Moca)
+        .filter(Moca.id_paciente == id_paciente, Moca.completada == True)  # noqa: E712
+        .order_by(Moca.fecha.asc())
+        .all()
+    )
+
+    items = []
+    for m in mocas:
+        resultados = (
+            db.query(ResultadoArea)
+            .filter(ResultadoArea.id_moca == m.id_moca)
+            .order_by(ResultadoArea.id_area)
+            .all()
+        )
+        items.append(MocaHistorialItem(
+            id_moca=m.id_moca,
+            fecha=m.fecha,
+            puntaje_total=m.puntaje_total,
+            clasificacion=m.clasificacion,
+            completada=m.completada,
+            resultados=[ResultadoAreaResponse.model_validate(r) for r in resultados],
+        ))
+
+    return items
+
+
+@router.get("/paciente/{id_paciente}/analisis")
+def analisis_paciente(
+    id_paciente: int,
+    esp: Especialista = Depends(_require_specialist),
+    db: Session = Depends(get_db),
+):
+    """Estimación del modelo integrado para cada MoCA completada del paciente, con los datos que usó."""
+    _verify_link(db, esp.id_especialista, id_paciente)
+
+    pac = db.query(Paciente).filter(Paciente.id_paciente == id_paciente).first()
+    usuario = db.query(Usuario).filter(Usuario.id_usuario == pac.id_usuario).first()
+    sexo = {1: "M", 2: "F"}.get(pac.id_genero)
+
+    exp = db.query(ExpedienteClinico).filter(ExpedienteClinico.id_paciente == id_paciente).first()
+    esc_anios = None
+    antecedentes = None
+    if exp:
+        if exp.id_escolaridad:
+            esc = db.query(CatEscolaridad).filter(CatEscolaridad.id_escolaridad == exp.id_escolaridad).first()
+            esc_anios = esc.anios if esc else None
+        if exp.id_consumo_tabaco:
+            tab = db.query(ConsumoTabaco).filter(ConsumoTabaco.id_consumo_tabaco == exp.id_consumo_tabaco).first()
+            indicadores = [
+                ind
+                for (ind,) in db.query(CatEnfermedad.indicador_modelo)
+                .join(EnfermedadPaciente, EnfermedadPaciente.id_enfermedad == CatEnfermedad.id_enfermedad)
+                .filter(EnfermedadPaciente.id_paciente == id_paciente)
+                .all()
+            ]
+            fumo = bool(tab) and tab.nivel_de_consumo_mensual != "Nunca"
+            antecedentes = prediccion.antecedentes_desde_expediente(indicadores, fumo)
+
+    impresiones: dict[int, str] = {}
+    for n in (
+        db.query(NotaClinica)
+        .filter(
+            NotaClinica.id_paciente == id_paciente,
+            NotaClinica.id_moca.isnot(None),
+            NotaClinica.impresion_diagnostica.isnot(None),
+        )
+        .order_by(NotaClinica.created_at.asc())
+        .all()
+    ):
+        impresiones[n.id_moca] = n.impresion_diagnostica
+
+    mocas = (
+        db.query(Moca)
+        .filter(Moca.id_paciente == id_paciente, Moca.completada == True)  # noqa: E712
+        .order_by(Moca.fecha.asc())
+        .all()
+    )
+
+    evaluaciones = []
+    for m in mocas:
+        dominios = {}
+        for r in db.query(ResultadoArea).filter(ResultadoArea.id_moca == m.id_moca).all():
+            nombre = prediccion.AREA_A_DOMINIO.get(r.id_area)
+            if nombre:
+                dominios[nombre] = r.puntaje_obtenido
+        edad = prediccion.edad_en(usuario.fecha_nacimiento, m.fecha.date())
+        item = {
+            "id_moca": m.id_moca,
+            "fecha": m.fecha.isoformat(),
+            "puntaje_total": m.puntaje_total,
+            "edad": edad,
+            "dominios": [
+                {
+                    "clave": d,
+                    "etiqueta": prediccion.ETIQUETAS[d],
+                    "puntaje": dominios.get(d),
+                    "maximo": mx,
+                }
+                for d, mx in prediccion.DOMINIO_MAX.items()
+            ],
+            "impresion_diagnostica": impresiones.get(m.id_moca),
+            "prediccion": None,
+            "motivo_sin_prediccion": None,
+        }
+        try:
+            item["prediccion"] = prediccion.predecir_visita(
+                dominios, edad, sexo, esc_anios, antecedentes, impresiones.get(m.id_moca)
+            )
+        except (ValueError, AssertionError) as e:
+            item["motivo_sin_prediccion"] = str(e)
+        evaluaciones.append(item)
+
+    avisos_paciente = []
+    edad_hoy = prediccion.edad_en(usuario.fecha_nacimiento, datetime.now().date())
+    if edad_hoy < 50:
+        avisos_paciente.append(
+            f"El paciente tiene {edad_hoy:.0f} años. El modelo se desarrolló casi solo con personas mayores "
+            "de 50 (media de 73), así que aquí la estimación es una extrapolación."
+        )
+    if sexo is None:
+        avisos_paciente.append(
+            "El sexo registrado no es Femenino ni Masculino; el modelo lo trata como Masculino, igual que en su desarrollo."
+        )
+    if esc_anios is None:
+        avisos_paciente.append("Sin escolaridad registrada: el modelo usa 16 años (mediana de su entrenamiento).")
+    if antecedentes is None:
+        avisos_paciente.append("Sin expediente clínico: se usó la variante base, que no considera antecedentes.")
+
+    return {
+        "paciente": {
+            "nombre": f"{usuario.nombre} {usuario.apellido_paterno}",
+            "edad": edad_hoy,
+            "sexo": {"F": "Femenino", "M": "Masculino"}.get(sexo, "No registrado"),
+            "escolaridad_anios": esc_anios,
+        },
+        "antecedentes": (
+            [{"clave": k, "etiqueta": prediccion.ETIQUETAS[k], "presente": bool(v)} for k, v in antecedentes.items()]
+            if antecedentes is not None
+            else None
+        ),
+        "evaluaciones": evaluaciones,
+        "desempeno": prediccion.DESEMPENO,
+        "avisos_paciente": avisos_paciente,
+        "avisos": prediccion.avisos_generales(),
+    }

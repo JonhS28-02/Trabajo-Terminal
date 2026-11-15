@@ -90,3 +90,14 @@ class MocaCompleteResponse(BaseModel):
     resultados: List[ResultadoAreaResponse] = []
 
     model_config = {"from_attributes": True}
+
+
+class MocaHistorialItem(BaseModel):
+    id_moca: int
+    fecha: datetime
+    puntaje_total: Optional[int] = None
+    clasificacion: Optional[str] = None
+    completada: bool
+    resultados: List[ResultadoAreaResponse] = []
+
+    model_config = {"from_attributes": True}

@@ -24,6 +24,11 @@ class SessionService {
     }
   }
 
+  static Future<void> setNombre(String nombre) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyNombre, nombre);
+  }
+
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyToken);

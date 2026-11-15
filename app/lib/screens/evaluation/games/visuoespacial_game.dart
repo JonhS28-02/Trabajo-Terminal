@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../data/moca_result.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/app_widgets.dart';
+import '../../../widgets/entrance.dart';
 
 class VisuoespacialGame extends StatefulWidget {
   const VisuoespacialGame({super.key});
@@ -200,7 +201,7 @@ class _VisuoespacialGameState extends State<VisuoespacialGame> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 16),
             Text('Visuoespacial / Ejecutiva',
@@ -211,7 +212,7 @@ class _VisuoespacialGameState extends State<VisuoespacialGame> {
             if (_subTask == 0) _buildTrail(),
             if (_subTask == 1) _buildCube(),
             if (_subTask == 2) _buildClock(),
-          ],
+          ]),
         ),
       ),
     );

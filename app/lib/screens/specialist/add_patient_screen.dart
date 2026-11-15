@@ -5,6 +5,7 @@ import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/qr_scanner_sheet.dart';
+import '../../widgets/entrance.dart';
 
 class AddPatientScreen extends StatefulWidget {
   const AddPatientScreen({super.key});
@@ -82,7 +83,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: staggered([
             const CircleBackButton(),
             const SizedBox(height: 32),
             Text('Agregar paciente', style: AppText.title.copyWith(fontSize: 26)),
@@ -147,7 +148,7 @@ class _AddPatientScreenState extends State<AddPatientScreen> {
               loading: _loading,
               onPressed: _vincular,
             ),
-          ],
+          ]),
         ),
       ),
     );

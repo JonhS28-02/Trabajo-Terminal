@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/api_service.dart';
+import '../services/session_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import 'auth/login_screen.dart';
+import 'main_shell.dart';
 
 /// Frame de la figura en un instante de la animación, en coordenadas del
 /// frame de Figma (402 x 874).
@@ -92,10 +95,26 @@ class _SplashScreenState extends State<SplashScreen>
     }
     await Future<void>.delayed(const Duration(milliseconds: 250));
     if (!mounted) return;
+    final destino = _destino();
     await _c.forward();
+    final pantalla = await destino;
     if (!mounted) return;
-    Navigator.of(context)
-        .pushReplacement(fadeRoute(const LoginScreen(), ms: 510));
+    Navigator.of(context).pushReplacement(fadeRoute(pantalla, ms: 510));
+  }
+
+  /// Si hay una sesión guardada y el servidor aún acepta el token, entra directo.
+  Future<Widget> _destino() async {
+    final token = await SessionService.getToken();
+    if (token == null || token.isEmpty) return const LoginScreen();
+    try {
+      await ApiService.getProfile(token).timeout(const Duration(seconds: 4));
+      return const MainShell();
+    } on ApiException {
+      await SessionService.clear();
+      return const LoginScreen();
+    } catch (_) {
+      return const LoginScreen();
+    }
   }
 
   @override

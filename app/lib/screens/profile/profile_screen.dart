@@ -5,6 +5,8 @@ import '../../services/api_service.dart';
 import '../../services/session_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_widgets.dart';
+import '../auth/login_screen.dart';
+import '../../widgets/entrance.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -73,6 +75,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final nombreCtrl = TextEditingController(text: _nombre);
     final apCtrl = TextEditingController(text: _apellidoPaterno);
     final amCtrl = TextEditingController(text: _apellidoMaterno);
+    final fechaCtrl = TextEditingController(text: _fechaNacimiento);
+    final emailCtrl = TextEditingController(text: _email);
+    final passCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -81,76 +86,163 @@ class _ProfileScreenState extends State<ProfileScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          top: 24,
-          left: AppSizes.gutter,
-          right: AppSizes.gutter,
-          bottom: MediaQuery.viewInsetsOf(ctx).bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        builder: (ctx, scrollCtrl) => SingleChildScrollView(
+          controller: scrollCtrl,
+          padding: EdgeInsets.only(
+            top: 24,
+            left: AppSizes.gutter,
+            right: AppSizes.gutter,
+            bottom: MediaQuery.viewInsetsOf(ctx).bottom + 24,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: staggered([
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text('Editar perfil', style: AppText.title.copyWith(fontSize: 18)),
-            const SizedBox(height: 20),
-            Text('Nombre', style: AppText.label.copyWith(fontSize: 12)),
-            const SizedBox(height: 8),
-            AppField(hint: 'Nombre', controller: nombreCtrl),
-            const SizedBox(height: 16),
-            Text('Apellido paterno', style: AppText.label.copyWith(fontSize: 12)),
-            const SizedBox(height: 8),
-            AppField(hint: 'Apellido paterno', controller: apCtrl),
-            const SizedBox(height: 16),
-            Text('Apellido materno', style: AppText.label.copyWith(fontSize: 12)),
-            const SizedBox(height: 8),
-            AppField(hint: 'Apellido materno', controller: amCtrl),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              label: 'GUARDAR',
-              onPressed: () async {
-                final token = await SessionService.getToken();
-                if (token == null) return;
-                try {
-                  await ApiService.updateProfile(
-                    token: token,
-                    nombre: nombreCtrl.text.trim(),
-                    apellidoPaterno: apCtrl.text.trim(),
-                    apellidoMaterno: amCtrl.text.trim(),
+              const SizedBox(height: 20),
+              Text('Editar perfil', style: AppText.title.copyWith(fontSize: 18)),
+              const SizedBox(height: 20),
+              Text('Nombre', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 8),
+              AppField(hint: 'Nombre', controller: nombreCtrl),
+              const SizedBox(height: 16),
+              Text('Apellido paterno', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 8),
+              AppField(hint: 'Apellido paterno', controller: apCtrl),
+              const SizedBox(height: 16),
+              Text('Apellido materno', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 8),
+              AppField(hint: 'Apellido materno', controller: amCtrl),
+              const SizedBox(height: 16),
+              Text('Fecha de nacimiento', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 8),
+              AppField(
+                hint: 'AAAA-MM-DD',
+                controller: fechaCtrl,
+                readOnly: true,
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: ctx,
+                    initialDate: DateTime.tryParse(_fechaNacimiento) ?? DateTime(1990),
+                    firstDate: DateTime(1900),
+                    lastDate: DateTime.now().subtract(const Duration(days: 6570)),
+                    builder: (c, child) => Theme(
+                      data: Theme.of(c).copyWith(
+                        colorScheme: const ColorScheme.dark(
+                          primary: AppColors.purple,
+                          surface: Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      child: child!,
+                    ),
                   );
-                  await SessionService.save(
-                    token: token,
-                    role: _role,
-                    userId: 0,
-                    nombre: nombreCtrl.text.trim(),
-                    codigoPaciente: _codigo,
-                  );
-                  if (!ctx.mounted) return;
-                  Navigator.of(ctx).pop();
-                  _loadProfile();
-                  if (mounted) {
-                    showDemoMessage(context, 'Perfil actualizado');
+                  if (picked != null) {
+                    fechaCtrl.text =
+                        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
                   }
-                } on ApiException catch (e) {
-                  if (ctx.mounted) showDemoMessage(ctx, e.message);
-                } catch (_) {
-                  if (ctx.mounted) showDemoMessage(ctx, 'Error de conexión');
-                }
-              },
-            ),
-          ],
+                },
+              ),
+              const SizedBox(height: 16),
+              Text('Correo electrónico', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 8),
+              AppField(
+                hint: 'correo@ejemplo.com',
+                controller: emailCtrl,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: 16),
+              Text('Nueva contraseña', style: AppText.label.copyWith(fontSize: 12)),
+              const SizedBox(height: 4),
+              Text('Deja vacío para no cambiarla',
+                  style: AppText.subtitle.copyWith(color: AppColors.hint, fontSize: 11)),
+              const SizedBox(height: 8),
+              AppField(hint: 'Nueva contraseña', controller: passCtrl, obscure: true),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                label: 'GUARDAR',
+                onPressed: () async {
+                  final token = await SessionService.getToken();
+                  if (token == null) return;
+                  try {
+                    await ApiService.updateProfile(
+                      token: token,
+                      nombre: nombreCtrl.text.trim(),
+                      apellidoPaterno: apCtrl.text.trim(),
+                      apellidoMaterno: amCtrl.text.trim(),
+                      fechaNacimiento: fechaCtrl.text.trim().isNotEmpty
+                          ? fechaCtrl.text.trim()
+                          : null,
+                      email: emailCtrl.text.trim() != _email
+                          ? emailCtrl.text.trim()
+                          : null,
+                      password: passCtrl.text.isNotEmpty
+                          ? passCtrl.text
+                          : null,
+                    );
+                    await SessionService.setNombre(nombreCtrl.text.trim());
+                    if (!ctx.mounted) return;
+                    Navigator.of(ctx).pop();
+                    _loadProfile();
+                    if (mounted) {
+                      showDemoMessage(context, 'Perfil actualizado');
+                    }
+                  } on ApiException catch (e) {
+                    if (ctx.mounted) showDemoMessage(ctx, e.message);
+                  } catch (_) {
+                    if (ctx.mounted) showDemoMessage(ctx, 'Error de conexión');
+                  }
+                },
+              ),
+            ]),
+          ),
         ),
       ),
+    );
+  }
+
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Cerrar sesión', style: AppText.title.copyWith(fontSize: 18)),
+        content: Text('Tendrás que volver a ingresar tu correo y contraseña.',
+            style: AppText.subtitle.copyWith(color: Colors.white70, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Cancelar', style: AppText.label.copyWith(color: AppColors.hint)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text('Cerrar sesión', style: AppText.label.copyWith(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await SessionService.clear();
+    } catch (_) {
+      // Aunque falle el borrado local, se sale a la pantalla de login.
+    }
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      fadeRoute(const LoginScreen()),
+      (_) => false,
     );
   }
 
@@ -283,11 +375,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: () async {
-                await SessionService.clear();
-                if (!context.mounted) return;
-                Navigator.of(context).popUntil((r) => r.isFirst);
-              },
+              onPressed: _logout,
               child: Text('CERRAR SESIÓN',
                   style: AppText.button.copyWith(color: Colors.redAccent)),
             ),
